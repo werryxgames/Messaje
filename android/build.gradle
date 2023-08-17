@@ -1,7 +1,7 @@
+apply plugin: "com.android.application"
+
 android {
     namespace "com.werryxgames.messenger"
-    buildToolsVersion "34.0.0"
-    compileSdkVersion 33
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -20,7 +20,9 @@ android {
     defaultConfig {
         applicationId "com.werryxgames.messenger"
         minSdkVersion 14
-        targetSdkVersion 33
+        targetSdkVersion 34
+        compileSdk 34
+        buildToolsVersion = "34.0.0"
         versionCode 1
         versionName "1.0"
     }
