@@ -11,6 +11,11 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Main class for client.
+ *
+ * @since 1.0
+ */
 public class MessengerJava extends Game {
   public static final Protocol CONNECTION_PROTOCOL = Protocol.TCP;
   public static final String SERVER_HOST = "185.6.27.126";
@@ -27,13 +32,12 @@ public class MessengerJava extends Game {
   public Stage stage;
 
   @Override
-  public void create () {
+  public void create() {
     this.logger = Logger.getLogger("Messenger");
 
     if (MessengerJava.DEBUG_BUILD) {
       this.logger.setLevel(Level.ALL);
-    }
-    else {
+    } else {
       this.logger.setLevel(Level.WARNING);
     }
 
@@ -41,7 +45,7 @@ public class MessengerJava extends Game {
     this.camera.setToOrtho(false, 1280, 720);
     this.batch = new SpriteBatch();
     this.fontManager = new FontManager("font.ttf");
-    UIStyle.create();
+    UiStyle.create();
 
     this.viewport = new ScreenViewport(camera);
     this.stage = new Stage(this.viewport);
@@ -49,13 +53,8 @@ public class MessengerJava extends Game {
     MessengerJava.CONNECTION_PARAMS.connectTimeout = 5000;
     MessengerJava.CONNECTION_PARAMS.tcpNoDelay = true;
     // TODO: Make it async
-    this.client = new Client(
-        this,
-        MessengerJava.CONNECTION_PROTOCOL,
-        MessengerJava.SERVER_HOST,
-        MessengerJava.SERVER_PORT,
-        MessengerJava.CONNECTION_PARAMS
-    );
+    this.client = new Client(this, MessengerJava.CONNECTION_PROTOCOL, MessengerJava.SERVER_HOST,
+        MessengerJava.SERVER_PORT, MessengerJava.CONNECTION_PARAMS);
 
     if (!this.client.isConnected()) {
       this.logger.warning("Unable to connect to server");
@@ -67,12 +66,12 @@ public class MessengerJava extends Game {
   }
 
   @Override
-  public void render () {
+  public void render() {
     super.render();
   }
 
   @Override
-  public void dispose () {
+  public void dispose() {
     this.client.dispose();
     this.batch.dispose();
     this.fontManager.dispose();

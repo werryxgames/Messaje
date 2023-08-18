@@ -2,8 +2,12 @@ package com.werryxgames.messenger;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Screen for logging in to account.
+ *
+ * @since 1.0
+ */
 public class LoginScreen extends DefaultScreen {
-
   /**
    * Default constructor for {@code DefaultScreen}.
    *
