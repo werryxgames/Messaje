@@ -55,7 +55,7 @@ public class Client {
     this.socketParams = hints;
     this.receiveThread = new Thread(() -> {
       while (true) {
-        boolean isConnected = this.socket.isConnected();
+        boolean isConnected = this.isConnected();
 
         if (!isConnected) {
           if (this.currentScreen != null) {
@@ -121,7 +121,7 @@ public class Client {
         }
       }
     });
-    this.reconnect(3);
+    this.reconnectBlocking(3);
   }
 
   /**
@@ -134,7 +134,7 @@ public class Client {
     for (int i = 0; i < attempts; i++) {
       this.reconnectBlocking();
 
-      if (this.socket.isConnected()) {
+      if (this.isConnected()) {
         return;
       }
     }
