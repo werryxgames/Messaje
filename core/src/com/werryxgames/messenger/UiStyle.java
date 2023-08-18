@@ -63,10 +63,10 @@ public class UiStyle {
     textFieldStyle.background = new NinePatchDrawable(
         new NinePatch(
             ResourceLoader.loadTexture(Gdx.files.internal("ui" + File.separator + "input.png")),
-            9,
-            10,
-            9,
-            10
+            5,
+            5,
+            5,
+            5
         )
     );
     textFieldStyle.cursor = new TextureRegionDrawable(
@@ -80,10 +80,10 @@ public class UiStyle {
         new NinePatch(
             ResourceLoader.loadTexture(Gdx.files.internal(
                 "ui" + File.separator + "input_disabled.png")),
-            9,
-            10,
-            9,
-            10
+            5,
+            5,
+            5,
+            5
         )
     );
     textFieldStyle.disabledFontColor = new Color(0xa3a3a3ff);
@@ -93,10 +93,10 @@ public class UiStyle {
         new NinePatch(
             ResourceLoader.loadTexture(
                 Gdx.files.internal("ui" + File.separator + "input_focused.png")),
-            9,
-            10,
-            9,
-            10
+            5,
+            5,
+            5,
+            5
         )
     );
     textFieldStyle.focusedFontColor = new Color(0xe6e6e6ff);
@@ -104,9 +104,18 @@ public class UiStyle {
     labelStyle.fontColor = new Color(0xa3a3a3ff);
 
     textButtonStyle.up = textFieldStyle.background;
-    textButtonStyle.down = textFieldStyle.disabledBackground;
+    textButtonStyle.down = new NinePatchDrawable(
+        new NinePatch(
+            ResourceLoader.loadTexture(
+                Gdx.files.internal("ui" + File.separator + "input_pressed.png")),
+            5,
+            5,
+            5,
+            5
+        )
+    );
     textButtonStyle.focused = textFieldStyle.focusedBackground;
-    textButtonStyle.downFontColor = textFieldStyle.disabledFontColor;
+    textButtonStyle.downFontColor = new Color(0xcececeff);
     textButtonStyle.fontColor = textFieldStyle.fontColor;
     textButtonStyle.focusedFontColor = textFieldStyle.focusedFontColor;
     textButtonStyleDisabled.up = textFieldStyle.disabledBackground;

@@ -71,9 +71,9 @@ public class FontManager {
     this.fontParameter.size = size;
     //noinspection HardcodedFileSeparator
     this.fontParameter.characters =
-        "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890, .?!@#$%^&*()"
-            + "-=_+\\/`~[]{}|'\";"
-            + ":<>йцукенгшщзхъфывапролджэячсмитьбюёЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁ•●";
+        "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890, .?!@#$%^&*()-=_+\\/`~[]{}|"
+            + "'\";:<>йцукенгшщзхъфывапролджэячсмитьбюёЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁ•●ўЎіІҐґЇїЄ"
+            + "єÄäĞğıİÑñÖöŞşŪūÜüẞß";
     BitmapFont font = fontGenerator.generateFont(this.fontParameter);
     TextureRegion region = font.getRegion();
     Texture texture = region.getTexture();
