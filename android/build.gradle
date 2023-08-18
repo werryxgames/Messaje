@@ -19,7 +19,7 @@ android {
     }
     defaultConfig {
         applicationId "com.werryxgames.messenger"
-        minSdkVersion 14
+        minSdkVersion 19
         targetSdkVersion 34
         compileSdk 34
         buildToolsVersion = "34.0.0"
