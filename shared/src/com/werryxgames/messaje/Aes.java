@@ -11,6 +11,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.DestroyFailedException;
@@ -22,7 +23,9 @@ import javax.security.auth.DestroyFailedException;
  */
 public class Aes {
   @SuppressWarnings("HardcodedFileSeparator")
-  public static final String ALGORITHM = "AES/CBC/PKCS5Padding";
+  public static final String ALGORITHM = "AES/GCM/NoPadding";
+  public static final int IV_SIZE = 12;
+  public static final int TAG_LENGTH = 128;
   // Don't forget to change it, if you will use custom server with custom client.
   public static final SecretKey DEFAULT_KEY =
       Aes.getKey("AB61498184100BBE904FC1B81C8CFD2A08B5F5226042AC117E9C84E6F86BF830");
@@ -98,19 +101,9 @@ public class Aes {
    * @return Generated IV.
    */
   public static IvParameterSpec generateIv() {
-    byte[] iv = new byte[16];
+    byte[] iv = new byte[Aes.IV_SIZE];
     new SecureRandom().nextBytes(iv);
     return new IvParameterSpec(iv);
-  }
-
-  /**
-   * Returns length of encrypted data, when data with {@code originalLength} will be encrypted.
-   *
-   * @param originalLength Length of original data.
-   * @return Length of encrypted data.
-   */
-  public static int getEncryptedLength(int originalLength) {
-    return originalLength + 16 - (originalLength % 16);
   }
 
   /**
@@ -125,7 +118,8 @@ public class Aes {
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
       InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
     Cipher cipher = Cipher.getInstance(Aes.ALGORITHM);
-    cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+    GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_LENGTH, iv.getIV());
+    cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
     return cipher.doFinal(bytes);
   }
 
@@ -136,10 +130,12 @@ public class Aes {
   public static byte[] encrypt(byte[] bytes, SecretKey key)
       throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
       NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-    ByteBuffer buffer = ByteBuffer.allocate(16 + Aes.getEncryptedLength(bytes.length));
     IvParameterSpec iv = Aes.generateIv();
-    buffer.put(iv.getIV());
-    buffer.put(Aes.encrypt(bytes, key, iv));
+    byte[] ivBytes = iv.getIV();
+    byte[] encryptedBytes = Aes.encrypt(bytes, key, iv);
+    ByteBuffer buffer = ByteBuffer.allocate(ivBytes.length + encryptedBytes.length);
+    buffer.put(ivBytes);
+    buffer.put(encryptedBytes);
     return buffer.array();
   }
 
@@ -165,7 +161,8 @@ public class Aes {
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
       InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
     Cipher cipher = Cipher.getInstance(Aes.ALGORITHM);
-    cipher.init(Cipher.DECRYPT_MODE, key, iv);
+    GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_LENGTH, iv.getIV());
+    cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
     return cipher.doFinal(encryptedBytes);
   }
 
@@ -187,7 +184,7 @@ public class Aes {
       throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
       NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
     ByteBuffer buffer = ByteBuffer.wrap(encryptedBytes);
-    byte[] ivBytes = new byte[16];
+    byte[] ivBytes = new byte[Aes.IV_SIZE];
     buffer.get(ivBytes);
     IvParameterSpec iv = new IvParameterSpec(ivBytes);
     byte[] contentBytes = new byte[buffer.remaining()];
