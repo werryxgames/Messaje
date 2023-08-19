@@ -10,7 +10,7 @@ java {
 sourceSets.main.java.srcDirs = [ "src/" ]
 sourceSets.main.resources.srcDirs = [ "data/" ]
 
-project.ext.mainClassName = "com.werryxgames.messenger.Server"
+project.ext.mainClassName = "com.werryxgames.messaje.Server"
 project.ext.assetsDir = new File("data")
 
 import org.gradle.internal.os.OperatingSystem

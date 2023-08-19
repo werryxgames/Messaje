@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import android.os.Bundle;
 import com.badlogic.gdx.backends.android.AndroidApplication;
@@ -14,6 +14,6 @@ public class AndroidLauncher extends AndroidApplication {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
-    initialize(new MessengerJava(), config);
+    initialize(new Messaje(), config);
   }
 }

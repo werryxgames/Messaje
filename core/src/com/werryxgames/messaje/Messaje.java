@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  *
  * @since 1.0
  */
-public class MessengerJava extends Game {
+public class Messaje extends Game {
   public static final boolean DEBUG_BUILD = true;
   public static final Protocol CONNECTION_PROTOCOL = Protocol.TCP;
   public static final String SERVER_HOST = DEBUG_BUILD ? "127.0.0.1" : "185.6.27.126";
@@ -35,9 +35,9 @@ public class MessengerJava extends Game {
 
   @Override
   public void create() {
-    this.logger = Logger.getLogger("Messenger");
+    this.logger = Logger.getLogger("Messaje");
 
-    if (MessengerJava.DEBUG_BUILD) {
+    if (Messaje.DEBUG_BUILD) {
       this.logger.setLevel(Level.ALL);
     } else {
       this.logger.setLevel(Level.WARNING);
@@ -48,7 +48,7 @@ public class MessengerJava extends Game {
     this.logger.addHandler(consoleHandler);
     this.logger.setUseParentHandlers(false);
 
-    if (MessengerJava.DEBUG_BUILD) {
+    if (Messaje.DEBUG_BUILD) {
       this.logger.fine("Using debug build is not recommended, consider using release builds");
     }
 
@@ -68,13 +68,13 @@ public class MessengerJava extends Game {
     this.viewport = new ScreenViewport(camera);
     this.stage = new Stage(this.viewport);
 
-    MessengerJava.CONNECTION_PARAMS.connectTimeout = 5000;
-    this.client = new Client(this, MessengerJava.CONNECTION_PROTOCOL, MessengerJava.SERVER_HOST,
-        MessengerJava.SERVER_PORT, MessengerJava.CONNECTION_PARAMS);
+    Messaje.CONNECTION_PARAMS.connectTimeout = 5000;
+    this.client = new Client(this, Messaje.CONNECTION_PROTOCOL, Messaje.SERVER_HOST,
+        Messaje.SERVER_PORT, Messaje.CONNECTION_PARAMS);
 
     this.setScreen(new LoginScreen(this));
     Gdx.input.setInputProcessor(this.stage);
-    this.logger.info("Messenger by Werryx Games");
+    this.logger.info("Messaje by Werryx Games");
   }
 
   @Override

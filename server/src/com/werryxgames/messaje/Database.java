@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -13,11 +13,11 @@ import java.sql.SQLException;
   Run mariadb-client (by writing "mysql" and pressing "Enter").
   (If you already have a database and want to fully reset it, erasing all accounts and messages,
    write:
-    DROP DATABASE messenger;
+    DROP DATABASE messaje;
    press "Enter" and write SQL query from "Write:" section)
   Write:
-    CREATE DATABASE IF NOT EXISTS messenger;
-    USE messenger;
+    CREATE DATABASE IF NOT EXISTS messaje;
+    USE messaje;
     CREATE TABLE IF NOT EXISTS accounts (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       login VARCHAR(64) NOT NULL,

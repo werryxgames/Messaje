@@ -10,7 +10,7 @@ java {
 sourceSets.main.java.srcDirs = [ "src/" ]
 sourceSets.main.resources.srcDirs = ["../assets"]
 
-project.ext.mainClassName = "com.werryxgames.messenger.DesktopLauncher"
+project.ext.mainClassName = "com.werryxgames.messaje.DesktopLauncher"
 project.ext.assetsDir = new File("../assets")
 
 import org.gradle.internal.os.OperatingSystem

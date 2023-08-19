@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -32,10 +32,10 @@ public class LoginScreen extends DefaultScreen {
   /**
    * Default constructor for {@code DefaultScreen}.
    *
-   * @param game Instance of {@link MessengerJava}.
+   * @param game Instance of {@link Messaje}.
    * @since 1.0
    */
-  public LoginScreen(MessengerJava game) {
+  public LoginScreen(Messaje game) {
     super(game);
   }
 

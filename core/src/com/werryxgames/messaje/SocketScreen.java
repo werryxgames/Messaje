@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Screen;
 import java.nio.ByteBuffer;

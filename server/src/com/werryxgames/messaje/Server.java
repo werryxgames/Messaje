@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -24,11 +24,11 @@ public class Server {
   public static final int PORT = 9451;
   public static final int MAX_PENDING_CONNECTIONS = 8;
   @SuppressWarnings("HardcodedFileSeparator")
-  private static final String DB_URL = getenv("MESSENGER_DB_URL", "127.0.0.1/messenger");
-  private static final String DB_USER = getenv("MESSENGER_DB_USER", "werryx");
-  private static final String DB_PASSWORD = getenv("MESSENGER_DB_PASSWORD", "1234");
+  private static final String DB_URL = getenv("MESSAJE_DB_URL", "127.0.0.1/messaje");
+  private static final String DB_USER = getenv("MESSAJE_DB_USER", "werryx");
+  private static final String DB_PASSWORD = getenv("MESSAJE_DB_PASSWORD", "1234");
   private static final boolean DB_DEFAULT =
-      Integer.parseInt(getenv("MESSENGER_DB_DEFAULT", "1")) == 1;
+      Integer.parseInt(getenv("MESSAJE_DB_DEFAULT", "1")) == 1;
 
   public Logger logger;
   public ServerSocket socket;
@@ -72,7 +72,7 @@ public class Server {
    * @param args Command line arguments.
    */
   public void start(String[] args) {
-    this.logger = Logger.getLogger("Messenger Server");
+    this.logger = Logger.getLogger("Messaje Server");
 
     // TODO: Find logging level from args.
     this.logger.setLevel(Level.ALL);

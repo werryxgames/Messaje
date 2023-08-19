@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;

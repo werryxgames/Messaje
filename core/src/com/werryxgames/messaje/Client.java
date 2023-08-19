@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
@@ -26,7 +26,7 @@ import javax.crypto.NoSuchPaddingException;
  * @since 1.0
  */
 public class Client {
-  public MessengerJava game;
+  public Messaje game;
   public Socket socket;
   public Protocol protocol;
   public String host;
@@ -48,14 +48,14 @@ public class Client {
   /**
    * Client constructor.
    *
-   * @param game     Instance of {@link MessengerJava}.
+   * @param game     Instance of {@link Messaje}.
    * @param protocol Protocol for connection.
    * @param host     Host of server for connection.
    * @param port     Port of server for connection.
    * @param hints    {@link SocketHints} for connection.
    * @since 1.0
    */
-  public Client(MessengerJava game, Protocol protocol, String host, int port, SocketHints hints) {
+  public Client(Messaje game, Protocol protocol, String host, int port, SocketHints hints) {
     this.game = game;
     this.protocol = protocol;
     this.host = host;

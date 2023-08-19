@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -9,7 +9,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
  * @since 1.0
  */
 public abstract class DefaultScreen implements SocketScreen {
-  final MessengerJava game;
+  final Messaje game;
   /**
    * Screen will be changed to {@code nextScreen} in next {@link DefaultScreen#render(float)}.
    *
@@ -21,10 +21,10 @@ public abstract class DefaultScreen implements SocketScreen {
   /**
    * Default constructor for {@code DefaultScreen}.
    *
-   * @param game Instance of {@link MessengerJava}.
+   * @param game Instance of {@link Messaje}.
    * @since 1.0
    */
-  public DefaultScreen(final MessengerJava game) {
+  public DefaultScreen(final Messaje game) {
     this.game = game;
     this.game.stage.clear();
     this.game.client.currentScreen = this;

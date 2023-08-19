@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
@@ -20,7 +20,7 @@ public class DesktopLauncher {
   public static void main(String[] args) {
     Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
     config.setForegroundFPS(30); // Not 60 because it is application, not game
-    config.setTitle("Messenger");
+    config.setTitle("Messaje");
     config.setWindowSizeLimits(400, 300, -1, -1);
     config.setWindowIcon(
         Files.FileType.Internal,
@@ -29,6 +29,6 @@ public class DesktopLauncher {
         "icons" + File.separator + "icon48.png",
         "icons" + File.separator + "icon128.png"
     );
-    new Lwjgl3Application(new MessengerJava(), config);
+    new Lwjgl3Application(new Messaje(), config);
   }
 }
