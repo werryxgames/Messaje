@@ -49,6 +49,13 @@ public class Server {
     new Server().start(args);
   }
 
+  /**
+   * Returns environment variable, or, if not found, default value.
+   *
+   * @param envKey Key of environment variable.
+   * @param defaultValue Value to return, if specified environment variable is not found.
+   * @return Environment variable, or, if not found, default value.
+   */
   public static String getenv(String envKey, String defaultValue) {
     if (System.getenv().containsKey(envKey)) {
       // Suppressed because it is server. On Android it's still possible to run server in Termux.

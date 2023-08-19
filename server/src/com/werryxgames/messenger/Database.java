@@ -36,6 +36,11 @@ import java.sql.SQLException;
   Press "Enter"
  */
 
+/**
+ * Database client, that connects to MariaDB.
+ *
+ * @since 1.0
+ */
 public class Database {
   public Server server;
   public Connection connection;
@@ -45,6 +50,13 @@ public class Database {
     this.connection = DriverManager.getConnection("jdbc:mariadb://" + url, user, password);
   }
 
+  /**
+   * Prepares statement.
+   *
+   * @param defaultStatement Text of statement.
+   * @param replacements Values, that will be used instead of question marks (?).
+   * @return Prepared statement.
+   */
   public PreparedStatement prepare(String defaultStatement, Object... replacements) {
     PreparedStatement statement;
 
@@ -118,6 +130,13 @@ public class Database {
     return statement;
   }
 
+  /**
+   * Updates database.
+   *
+   * @param update SQL code.
+   * @param replacements See {@link Database#prepare(String, Object...)}.
+   * @return Count of affected rows.
+   */
   public int update(String update, Object... replacements) {
     PreparedStatement statement = this.prepare(update, replacements);
 
@@ -134,6 +153,13 @@ public class Database {
     return -1;
   }
 
+  /**
+   * Queries data from database.
+   *
+   * @param query SQL code.
+   * @param replacements See {@link Database#prepare(String, Object...)}.
+   * @return Queried data.
+   */
   public ResultSet query(String query, Object... replacements) {
     PreparedStatement statement = this.prepare(query, replacements);
 
@@ -150,6 +176,9 @@ public class Database {
     return null;
   }
 
+  /**
+   * Closes database. Must be called in the end of program.
+   */
   public void close() {
     try {
       this.connection.close();
