@@ -9,4 +9,4 @@ computers.
 
 MessengerJava (old name) -> Messaje (message with 'j' instead of 'g').
 
-**In development. Don't use it in production, until at least first release!**
+**In development. Don't use it in production (don't write any confidential messages), until at least first release!**
