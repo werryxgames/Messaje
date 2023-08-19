@@ -1,4 +1,4 @@
-package com.werryxgames.messenger;
+package com.werryxgames.messaje;
 
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;

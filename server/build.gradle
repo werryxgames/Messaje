@@ -8,10 +8,10 @@ java {
 }
 
 sourceSets.main.java.srcDirs = [ "src/" ]
-sourceSets.main.resources.srcDirs = ["../assets"]
+sourceSets.main.resources.srcDirs = [ "data/" ]
 
-project.ext.mainClassName = "com.werryxgames.messaje.DesktopLauncher"
-project.ext.assetsDir = new File("../assets")
+project.ext.mainClassName = "com.werryxgames.messaje.Server"
+project.ext.assetsDir = new File("data")
 
 import org.gradle.internal.os.OperatingSystem
 
@@ -54,4 +54,4 @@ tasks.register('dist', Jar) {
 
 dist.dependsOn classes
 
-eclipse.project.name = appName + "-desktop"
+eclipse.project.name = appName + "-server"

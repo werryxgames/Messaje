@@ -1,7 +1,7 @@
 apply plugin: "com.android.application"
 
 android {
-    namespace "com.werryxgames.messenger"
+    namespace "com.werryxgames.messaje"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -18,7 +18,7 @@ android {
         exclude 'META-INF/robovm/ios/robovm.xml'
     }
     defaultConfig {
-        applicationId "com.werryxgames.messenger"
+        applicationId "com.werryxgames.messaje"
         minSdkVersion 19
         targetSdkVersion 34
         compileSdk 34
@@ -43,7 +43,6 @@ android {
         includeInBundle false
     }
     compileSdk 34
-    buildToolsVersion '34.0.0'
     ndkVersion '23.2.8568313'
 }
 
@@ -98,7 +97,7 @@ tasks.register('run', Exec) {
     }
 
     def adb = path + "/platform-tools/adb"
-    commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.werryxgames.messenger/com.werryxgames.messenger.AndroidLauncher'
+    commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.werryxgames.messaje/com.werryxgames.messaje.AndroidLauncher'
 }
 
 eclipse.project.name = appName + "-android"
