@@ -128,3 +128,11 @@ Thumbs.db
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 replay_pid*
+
+# Environment variables
+/env.sh
+/env.bat
+/env
+/env.java
+/env.jar
+/env.txt

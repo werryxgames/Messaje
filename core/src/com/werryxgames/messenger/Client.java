@@ -5,7 +5,6 @@ import com.badlogic.gdx.Net.Protocol;
 import com.badlogic.gdx.net.Socket;
 import com.badlogic.gdx.net.SocketHints;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-import com.badlogic.gdx.utils.Queue;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -16,7 +15,7 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Locale;
-import java.util.logging.Level;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -43,8 +42,8 @@ public class Client {
   public DataOutputStream outputStream = null;
   protected Thread receiveThread;
   protected Thread sendThread;
-  protected Queue<byte[]> receiveBytes = new Queue<>();
-  protected Queue<byte[]> sendBytes = new Queue<>();
+  protected ConcurrentLinkedQueue<byte[]> receiveBytes = new ConcurrentLinkedQueue<>();
+  protected ConcurrentLinkedQueue<byte[]> sendBytes = new ConcurrentLinkedQueue<>();
 
   /**
    * Client constructor.
@@ -86,7 +85,7 @@ public class Client {
       } catch (SocketException e) {
         continue;
       } catch (IOException e) {
-        this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+        this.game.logException(e);
       }
 
       if (availableBytes < 4) {
@@ -106,22 +105,22 @@ public class Client {
                   availableBytes));
         }
       } catch (IOException e) {
-        this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+        this.game.logException(e);
       }
 
       try {
-        this.receiveBytes.addLast(Aes.decrypt(sentBytes));
+        this.receiveBytes.add(Aes.decrypt(sentBytes));
       } catch (InvalidAlgorithmParameterException | NoSuchPaddingException
                | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException
                | InvalidKeyException e) {
-        this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+        this.game.logException(e);
       }
 
       if (this.currentScreen != null) {
         byte[] lastBytes;
 
         while (!this.receiveBytes.isEmpty()) {
-          lastBytes = this.receiveBytes.removeFirst();
+          lastBytes = this.receiveBytes.poll();
           @SuppressWarnings("ObjectAllocationInLoop") StringBuilder stringBuilder =
               new StringBuilder(lastBytes.length + 1);
           stringBuilder.append("Message from server: ");
@@ -141,11 +140,11 @@ public class Client {
 
   protected void sendLoop() {
     while (this.isConnected()) {
-      if (this.sendBytes.size == 0) {
-        return;
+      if (this.sendBytes.size() == 0) {
+        continue;
       }
 
-      this.sendBlocking(this.sendBytes.removeFirst());
+      this.sendBlocking(this.sendBytes.poll());
     }
   }
 
@@ -160,7 +159,7 @@ public class Client {
         this.inputStream.close();
         this.outputStream.close();
       } catch (IOException e) {
-        this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+        this.game.logException(e);
       }
 
       this.socket.dispose();
@@ -170,7 +169,7 @@ public class Client {
         this.receiveThread.join(20);
         this.sendThread.join(20);
       } catch (InterruptedException e) {
-        this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+        this.game.logException(e);
       }
     }
 
@@ -199,6 +198,7 @@ public class Client {
       this.reconnectBlocking();
 
       if (this.isConnected()) {
+        this.game.logger.fine("Connected to server");
         return;
       }
     }
@@ -237,7 +237,7 @@ public class Client {
     } catch (InvalidAlgorithmParameterException | NoSuchPaddingException
              | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException
              | InvalidKeyException | IOException e) {
-      this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.game.logException(e);
     }
   }
 
@@ -246,7 +246,7 @@ public class Client {
   }
 
   public void send(byte[] bytes) {
-    this.sendBytes.addLast(bytes);
+    this.sendBytes.add(bytes);
   }
 
   public void send(ByteBuffer buffer) {

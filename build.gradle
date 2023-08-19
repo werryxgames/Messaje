@@ -99,5 +99,6 @@ project(":server") {
 
     dependencies {
         implementation project(":shared")
+        implementation "org.mariadb.jdbc:mariadb-java-client:2.1.2"
     }
 }

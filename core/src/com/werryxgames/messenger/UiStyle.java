@@ -63,10 +63,10 @@ public class UiStyle {
     textFieldStyle.background = new NinePatchDrawable(
         new NinePatch(
             ResourceLoader.loadTexture(Gdx.files.internal("ui" + File.separator + "input.png")),
-            5,
-            5,
-            5,
-            5
+            7,
+            7,
+            7,
+            7
         )
     );
     textFieldStyle.cursor = new TextureRegionDrawable(

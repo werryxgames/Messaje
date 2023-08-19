@@ -6,12 +6,14 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -27,11 +29,12 @@ public class Client {
   public DataInputStream inputStream;
   public DataOutputStream outputStream;
   protected ConcurrentLinkedQueue<byte[]> packets = new ConcurrentLinkedQueue<>();
+  protected long accountId = 0;
 
   /**
    * Constructor for {@link Client}.
    *
-   * @param server Instance of {@link Server}.
+   * @param server       Instance of {@link Server}.
    * @param clientSocket Socket of connected client.
    */
   public Client(Server server, Socket clientSocket) {
@@ -42,7 +45,7 @@ public class Client {
       this.inputStream = new DataInputStream(clientSocket.getInputStream());
       this.outputStream = new DataOutputStream(clientSocket.getOutputStream());
     } catch (IOException e) {
-      this.server.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.server.logException(e);
     }
 
     new Thread(this::receiveHandleLoop).start();
@@ -65,9 +68,120 @@ public class Client {
     this.server.logger.finest(stringBuilder.toString());
 
     short code = buffer.getShort();
-    ByteBuffer sendBuffer = ByteBuffer.allocate(2);
-    sendBuffer.putShort(code);
-    this.send(sendBuffer);
+
+    switch (code) {
+      case 0 -> {
+        int loginLength = buffer.get();
+        byte[] loginBytes = new byte[loginLength];
+
+        if (loginBytes.length > 64) {
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 3);
+          this.send(sendBuffer);
+          return;
+        }
+
+        buffer.get(loginBytes);
+        String login = new String(loginBytes, StandardCharsets.UTF_8);
+
+        if (login.length() > 16) {
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 3);
+          this.send(sendBuffer);
+          return;
+        }
+
+        byte[] passwordHash = new byte[32];
+        buffer.get(passwordHash);
+
+        try (ResultSet userWithSameLogin = this.server.db.query(
+            "SELECT 1 FROM accounts WHERE login = ?", login)) {
+          if (userWithSameLogin == null) {
+            ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+            sendBuffer.putShort((short) 1);
+            this.send(sendBuffer);
+            return;
+          }
+
+          if (userWithSameLogin.next()) {
+            ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+            sendBuffer.putShort((short) 2);
+            this.send(sendBuffer);
+            return;
+          }
+        } catch (SQLException e) {
+          this.server.logException(e);
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 1);
+          this.send(sendBuffer);
+          return;
+        }
+
+        if (this.server.db.update(
+            "INSERT INTO accounts (login, passwordHash, passwordSalt) VALUES (?, ?, ?)",
+            login,
+            passwordHash,
+            "No salt."
+        ) < 1) {
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 1);
+          this.send(sendBuffer);
+          return;
+        }
+
+        ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+        sendBuffer.putShort((short) 0);
+        this.send(sendBuffer);
+        this.server.logger.fine("New account has been created. Login: '" + login + "'");
+      }
+      case 1 -> {
+        int loginLength = buffer.get();
+        byte[] loginBytes = new byte[loginLength];
+
+        if (loginBytes.length > 64) {
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 4);
+          this.send(sendBuffer);
+          return;
+        }
+
+        buffer.get(loginBytes);
+        String login = new String(loginBytes, StandardCharsets.UTF_8);
+
+        if (login.length() > 16) {
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 4);
+          this.send(sendBuffer);
+          return;
+        }
+
+        byte[] passwordHash = new byte[32];
+        buffer.get(passwordHash);
+        try (ResultSet specifiedUser = this.server.db.query(
+            "SELECT 1 FROM accounts WHERE login = ? AND passwordHash = ? AND passwordSalt = ?",
+            login, passwordHash, "No salt.")) {
+          if (!specifiedUser.next()) {
+            ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+            sendBuffer.putShort((short) 5);
+            this.send(sendBuffer);
+            return;
+          }
+
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 6);
+          this.send(sendBuffer);
+          this.accountId = specifiedUser.getLong(1);
+          this.server.logger.fine("Logged in user with id " + this.accountId);
+        } catch (SQLException e) {
+          this.server.logException(e);
+          ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+          sendBuffer.putShort((short) 1);
+          this.send(sendBuffer);
+        }
+      }
+      // FINER to prevent spamming from modified (or broken) client, slowing down the server
+      default -> this.server.logger.finer("Unexpected operation code from client: " + code);
+    }
   }
 
   /**
@@ -110,8 +224,7 @@ public class Client {
       if (packetLength != readBytes) {
         this.server.logger.warning(
             String.format(Locale.ENGLISH, "Read not all bytes (%d from %d).", readBytes,
-                packetLength)
-        );
+                packetLength));
         return;
       }
 
@@ -119,7 +232,7 @@ public class Client {
     } catch (EOFException e) {
       throw e;
     } catch (IOException e) {
-      this.server.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.server.logException(e);
     }
   }
 
@@ -137,7 +250,7 @@ public class Client {
     } catch (IOException | InvalidAlgorithmParameterException | NoSuchPaddingException
              | IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException
              | InvalidKeyException e) {
-      this.server.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.server.logException(e);
     }
   }
 
@@ -163,7 +276,7 @@ public class Client {
       return Aes.decrypt(packet);
     } catch (InvalidAlgorithmParameterException | InvalidKeyException | BadPaddingException
              | NoSuchAlgorithmException | IllegalBlockSizeException | NoSuchPaddingException e) {
-      this.server.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.server.logException(e);
     }
 
     return null;
@@ -191,7 +304,7 @@ public class Client {
     try {
       this.socket.close();
     } catch (IOException e) {
-      this.server.logger.log(Level.SEVERE, e.getMessage(), e);
+      this.server.logException(e);
     }
   }
 }

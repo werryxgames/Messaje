@@ -1,7 +1,9 @@
 package com.werryxgames.messenger;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -9,14 +11,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.logging.Level;
 
 /**
  * Screen for logging in to account.
@@ -91,7 +94,7 @@ public class LoginScreen extends DefaultScreen {
           hashedPassword = MessageDigest.getInstance("SHA3-256")
               .digest(passwordField.getText().getBytes(StandardCharsets.UTF_8));
         } catch (NoSuchAlgorithmException e) {
-          LoginScreen.this.game.logger.log(Level.SEVERE, e.getMessage(), e);
+          LoginScreen.this.game.logException(e);
           return;
         }
 
@@ -102,7 +105,7 @@ public class LoginScreen extends DefaultScreen {
         buffer.put((byte) loginLength);
         buffer.put(login);
         buffer.put(hashedPassword);
-        LoginScreen.this.game.client.sendBlocking(buffer);
+        LoginScreen.this.game.client.send(buffer);
       }
     });
     table3.add(registerButton).width(150).padRight(4);
@@ -110,19 +113,47 @@ public class LoginScreen extends DefaultScreen {
         "Log in",
         UiStyle.getTextButtonStyle(this.game.fontManager, 0, 24)
     );
+    logInButton.addListener(new ChangeListener() {
+      @Override
+      public void changed(ChangeEvent event, Actor actor) {
+        LoginScreen.this.game.logger.fine("Log in button pressed");
+        byte[] hashedPassword;
+
+        try {
+          hashedPassword = MessageDigest.getInstance("SHA3-256")
+              .digest(passwordField.getText().getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+          LoginScreen.this.game.logException(e);
+          return;
+        }
+
+        byte[] login = loginField.getText().getBytes(StandardCharsets.UTF_8);
+        int loginLength = login.length;
+        ByteBuffer buffer = ByteBuffer.allocate(2 + 1 + loginLength + hashedPassword.length);
+        buffer.putShort((short) 1);
+        buffer.put((byte) loginLength);
+        buffer.put(login);
+        buffer.put(hashedPassword);
+        LoginScreen.this.game.client.send(buffer);
+      }
+    });
     table3.add(logInButton).width(150).padLeft(4);
     table3.pack();
 
-    Table table = new Table();
+    Table panelTable = new Table();
     Label titleLabel = new Label(
         "Log in to account or create new",
         UiStyle.getLabelStyle(this.game.fontManager, 1, 30)
     );
-    table.add(titleLabel).padBottom(8);
-    table.row();
-    table.add(table2).padTop(4).padBottom(8);
-    table.row();
-    table.add(table3);
+    panelTable.add(titleLabel).padBottom(8);
+    panelTable.row();
+    panelTable.add(table2).padTop(4).padBottom(8);
+    panelTable.row();
+    panelTable.add(table3);
+    panelTable.pack();
+
+    Table table = new Table();
+    table.add(panelTable).width(panelTable.getWidth() + 40).height(panelTable.getHeight() + 30);
     table.setFillParent(true);
     table.pack();
 
@@ -133,6 +164,11 @@ public class LoginScreen extends DefaultScreen {
     Texture bgTexture = new Texture(bgPixmap);
     this.disposables.add(bgTexture);
     table.setBackground(new TextureRegionDrawable(new TextureRegion(bgTexture)));
+
+    NinePatch panelNinePatch = new NinePatch(
+        ResourceLoader.loadTexture(Gdx.files.internal("ui" + File.separator + "panel_bg.png")), 14,
+        14, 14, 14);
+    panelTable.setBackground(new NinePatchDrawable(panelNinePatch));
 
     this.game.stage.addActor(table);
   }

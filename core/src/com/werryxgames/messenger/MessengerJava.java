@@ -82,6 +82,14 @@ public class MessengerJava extends Game {
     super.render();
   }
 
+  public void logException(Exception e, Level level) {
+    this.logger.log(level, e.getMessage(), e);
+  }
+
+  public void logException(Exception e) {
+    this.logException(e, Level.SEVERE);
+  }
+
   @Override
   public void dispose() {
     this.client.dispose();
