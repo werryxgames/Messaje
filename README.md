@@ -5,3 +5,5 @@
 [![reviewdog](https://github.com/werryxgames/MessengerJava/actions/workflows/reviewdog.yml/badge.svg)](https://github.com/werryxgames/MessengerJava/actions/workflows/reviewdog.yml)
 
 Fast cross-platform messenger client, written in Java for mobile devices and personal computers.
+
+**In development. Not for production use, until at least first release!**
