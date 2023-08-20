@@ -19,10 +19,11 @@ import java.util.logging.Logger;
  * @since 1.0
  */
 public class Messaje extends Game {
-  public static final boolean DEBUG_BUILD = true;
+  public static final boolean DEBUG_BUILD = Config.get("debug", true);
   public static final Protocol CONNECTION_PROTOCOL = Protocol.TCP;
-  public static final String SERVER_HOST = DEBUG_BUILD ? "127.0.0.1" : "185.6.27.126";
-  public static final int SERVER_PORT = 9451;
+  public static final String SERVER_HOST = Config.get("server.host",
+      DEBUG_BUILD ? "127.0.0.1" : "185.6.27.126");
+  public static final int SERVER_PORT = Config.get("server.port", 9451);
   public static final SocketHints CONNECTION_PARAMS = new SocketHints();
 
   public FontManager fontManager;
@@ -32,6 +33,10 @@ public class Messaje extends Game {
   public Client client;
   public ScreenViewport viewport;
   public Stage stage;
+
+  public Messaje() {
+    super();
+  }
 
   @Override
   public void create() {
