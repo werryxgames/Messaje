@@ -19,7 +19,6 @@ import java.util.logging.Logger;
  * @since 1.0
  */
 public class Messaje extends Game {
-
   public static final boolean DEBUG_BUILD = Config.get("debug", true);
   public static final Protocol CONNECTION_PROTOCOL = Protocol.TCP;
   public static final String SERVER_HOST = Config.get("server.host",
