@@ -25,12 +25,6 @@
 -repackageclasses
 -allowaccessmodification
 
-#-keepclassmembernames class com.badlogic.gdx.graphics.g2d.* {
-#    public <init>(...);
-#}
-#-keepclassmembernames class com.badlogic.gdx.scenes.scene2d.* {
-#    public <init>(...);
-#}
 -keepclassmembers class com.badlogic.gdx.graphics.g2d.* {
     public <init>(...);
 }
