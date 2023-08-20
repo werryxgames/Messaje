@@ -1,5 +1,11 @@
 package com.werryxgames.messaje;
 
+// TODO: Generate encrypted properties for client and server manually
+// For example: Have ./client.properties and ./server.properties
+// Compile and encrypt their values to ./assets/client.eproperties and ./server/server.eproperties
+// eproperties = Encrypted PROPERTIES
+// Encrypt/decrypt through AES.customEncrypt...()/Aes.customDecrypt...()
+
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
@@ -32,6 +38,10 @@ public class Messaje extends Game {
   public Client client;
   public ScreenViewport viewport;
   public Stage stage;
+
+  public Messaje() {
+    super();
+  }
 
   @Override
   public void create() {

@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
  */
 public abstract class DefaultScreen implements SocketScreen {
   final Messaje game;
+
   /**
    * Screen will be changed to {@code nextScreen} in next {@link DefaultScreen#render(float)}.
    *
@@ -25,6 +26,7 @@ public abstract class DefaultScreen implements SocketScreen {
    * @since 1.0
    */
   public DefaultScreen(final Messaje game) {
+    super();
     this.game = game;
     this.game.stage.clear();
     this.game.client.currentScreen = this;
