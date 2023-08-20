@@ -1,8 +1,14 @@
 package com.werryxgames.messaje;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.nio.ByteBuffer;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -15,20 +21,22 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 
 /**
  * Class, that is used as server launcher.
  */
 public class Server {
-  public static final String HOST = "0.0.0.0";
-  public static final int PORT = 9451;
-  public static final int MAX_PENDING_CONNECTIONS = 8;
+  public static final String HOST = Config.get("server.host", "0.0.0.0");
+  public static final int PORT = Config.get("server.port", 9451);
+  public static final int MAX_PENDING_CONNECTIONS = Config.get("server.maxPendingConnections", 8);
   @SuppressWarnings("HardcodedFileSeparator")
-  private static final String DB_URL = getenv("MESSAJE_DB_URL", "127.0.0.1/messaje");
-  private static final String DB_USER = getenv("MESSAJE_DB_USER", "werryx");
-  private static final String DB_PASSWORD = getenv("MESSAJE_DB_PASSWORD", "1234");
-  private static final boolean DB_DEFAULT =
-      Integer.parseInt(getenv("MESSAJE_DB_DEFAULT", "1")) == 1;
+  private static final String DB_URL = Config.get("db.url", "127.0.0.1/messaje");
+  private static final String DB_USER = Config.get("db.user", "werryx");
+  private static final String DB_PASSWORD = Config.get("db.password", "1234");
 
   public Logger logger;
   public ServerSocket socket;
@@ -40,9 +48,23 @@ public class Server {
    *
    * @param args Unused.
    */
-  public static void main(String[] args) throws NoSuchAlgorithmException {
+  public static void main(String[] args)
+      throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchPaddingException,
+      IllegalBlockSizeException, IOException, BadPaddingException, InvalidKeyException {
     if (args.length == 2 && Objects.equals(args[0], "--generateKey")) {
       Aes.printKey(Aes.generateKey(Integer.parseInt(args[1])));
+      return;
+    }
+
+    if (args.length == 1 && Objects.equals(args[0], "--saveConfig")) {
+      Server.saveConfig("config" + File.separator
+              + "client.properties",
+          "assets" + File.separator
+              + "config.properties.enc");
+      Server.saveConfig("config" + File.separator
+              + "server.properties",
+          "server" + File.separator + "data" + File.separator + "config.properties.enc");
+      System.out.println("Configuration saved");
       return;
     }
 
@@ -50,20 +72,30 @@ public class Server {
   }
 
   /**
-   * Returns environment variable, or, if not found, default value.
+   * Encrypts original *.properties file and saves it to specified path.
    *
-   * @param envKey Key of environment variable.
-   * @param defaultValue Value to return, if specified environment variable is not found.
-   * @return Environment variable, or, if not found, default value.
+   * @param originalFilePath Path to original *.properties file.
+   * @param encryptedFilePath Path to encrypted *.properties file.
    */
-  public static String getenv(String envKey, String defaultValue) {
-    if (System.getenv().containsKey(envKey)) {
-      // Suppressed because it is server. On Android it's still possible to run server in Termux.
-      //noinspection CallToSystemGetenv
-      return System.getenv(envKey);
-    }
+  public static void saveConfig(String originalFilePath, String encryptedFilePath)
+      throws NoSuchAlgorithmException, IOException, InvalidAlgorithmParameterException,
+      NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+    SecretKey key = Aes.generateKey(256);
+    byte[] keyBytes = Aes.customEncryptAlgorithm(key.getEncoded());
 
-    return defaultValue;
+    try (FileInputStream inputStream = new FileInputStream(originalFilePath)) {
+      byte[] encryptedBytes = Aes.encrypt(inputStream.readAllBytes(), key);
+      byte keyLength = (byte) (keyBytes.length - 1);
+      byte[] resultBytes =
+          ByteBuffer.allocate(1 + keyBytes.length + encryptedBytes.length).put(keyLength)
+              .put(keyBytes)
+              .put(encryptedBytes)
+              .array();
+
+      try (FileOutputStream outputStream = new FileOutputStream(encryptedFilePath)) {
+        outputStream.write(resultBytes);
+      }
+    }
   }
 
   /**
@@ -103,10 +135,10 @@ public class Server {
       return;
     }
 
-    if (Server.DB_DEFAULT) {
+    if (!(Config.hasKey("db.url") && Config.hasKey("db.password"))) {
       this.logger.warning(
-          "Connecting to default database. Set environment variables to specify database "
-              + "parameters.");
+          "Connecting to default database. Set config values to specify database "
+              + "parameters: Required 'db.url' and 'db.password' (also you can set 'db.user')");
     }
 
     try {

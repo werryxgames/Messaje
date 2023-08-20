@@ -1,6 +1,7 @@
 package com.werryxgames.messaje;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -26,9 +27,62 @@ public class Aes {
   public static final String ALGORITHM = "AES/GCM/NoPadding";
   public static final int IV_SIZE = 12;
   public static final int TAG_LENGTH = 128;
-  // Don't forget to change it, if you will use custom server with custom client.
-  public static final SecretKey DEFAULT_KEY =
-      Aes.getKey("AB61498184100BBE904FC1B81C8CFD2A08B5F5226042AC117E9C84E6F86BF830");
+  protected static SecretKey key = null;
+
+  /**
+   * SHOULD BE REPLACED WITH SOMETHING MORE SECURE!
+   * Custom algorithm for encrypting properties.
+   * Must return non-empty byte array from non-empty data.
+   * <br>
+   * Note: Consider using {@link Aes#encrypt(byte[], SecretKey)} here.
+   *
+   * @param keyBytes Original bytes.
+   * @return Encrypted bytes.
+   */
+  static byte[] customEncryptAlgorithm(byte[] keyBytes) {
+    int keyLength = keyBytes.length;
+    byte[] newBytes = new byte[keyLength];
+
+    for (int i = 0; i < keyLength; i++) {
+      newBytes[i] = (byte) (keyBytes[keyLength - i - 1] - 55);
+    }
+
+    return newBytes;
+  }
+
+  /**
+   * SHOULD BE REPLACED WITH SOMETHING MORE SECURE!
+   * Custom algorithm for decrypting properties, encrypted with
+   * {@link Aes#customEncryptAlgorithm(byte[])}.
+   *
+   * @param encryptedBytes Encrypted bytes.
+   * @return Original bytes.
+   */
+  static byte[] customDecryptAlgorithm(byte[] encryptedBytes) {
+    int encryptedLength = encryptedBytes.length;
+    byte[] originalBytes = new byte[encryptedLength];
+
+    for (int i = 0; i < encryptedLength; i++) {
+      originalBytes[i] = (byte) (encryptedBytes[encryptedLength - i - 1] + 55);
+    }
+
+    return originalBytes;
+  }
+
+  static String decryptProperties(byte[] encryptedBytes)
+      throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
+      NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    ByteBuffer buffer = ByteBuffer.wrap(encryptedBytes);
+    short keyLength = (short) ((buffer.get() + 1) & 0xFF);
+    byte[] encryptedKeyBytes = new byte[keyLength];
+    buffer.get(encryptedKeyBytes);
+    byte[] keyBytes = Aes.customDecryptAlgorithm(encryptedKeyBytes);
+    byte[] encryptedData = new byte[encryptedBytes.length - keyLength - 1];
+    buffer.get(encryptedData);
+    SecretKey key = new SecretKeySpec(keyBytes, "AES");
+    byte[] decryptedData = Aes.decrypt(encryptedData, key);
+    return new String(decryptedData, StandardCharsets.UTF_8);
+  }
 
   /**
    * Generates key for AES.
@@ -41,6 +95,21 @@ public class Aes {
     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
     keyGenerator.init(keyLength);
     return keyGenerator.generateKey();
+  }
+
+  /**
+   * Returns key, specified as {@code aes.key} property, or it's default value.
+   *
+   * @return Key.
+   */
+  public static SecretKey getKey() {
+    if (Aes.key == null) {
+      Aes.key = Aes.getKey(
+          Config.get("aes.key",
+              "AB61498184100BBE904FC1B81C8CFD2A08B5F5226042AC117E9C84E6F86BF830"));
+    }
+
+    return Aes.key;
   }
 
   /**
@@ -72,19 +141,28 @@ public class Aes {
   }
 
   /**
-   * Prints AES key, using {@link System#out}.{@link java.io.PrintStream#print(Object)}.
+   * Prints array of bytes, using {@link System#out}.{@link java.io.PrintStream#println(Object)}.
+   *
+   * @param bytes Byte array, that will be printed.
+   */
+  public static void printBytes(byte[] bytes) {
+    StringBuilder hexBuilder = new StringBuilder(bytes.length);
+
+    for (byte b : bytes) {
+      hexBuilder.append(String.format("%02X", b));
+    }
+
+    System.out.println(hexBuilder);
+  }
+
+  /**
+   * Prints AES key, using {@link Aes#printBytes(byte[])}.
+   * After that, destroys key.
    *
    * @param key AES key.
    */
   public static boolean printKey(SecretKey key) {
-    byte[] keyBytes = key.getEncoded();
-    StringBuilder keyHexBuilder = new StringBuilder(keyBytes.length);
-
-    for (byte b : keyBytes) {
-      keyHexBuilder.append(String.format("%02X", b));
-    }
-
-    System.out.println(keyHexBuilder);
+    Aes.printBytes(key.getEncoded());
 
     try {
       key.destroy();
@@ -118,7 +196,7 @@ public class Aes {
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
       InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
     Cipher cipher = Cipher.getInstance(Aes.ALGORITHM);
-    GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_LENGTH, iv.getIV());
+    GCMParameterSpec parameterSpec = new GCMParameterSpec(Aes.TAG_LENGTH, iv.getIV());
     cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
     return cipher.doFinal(bytes);
   }
@@ -146,7 +224,7 @@ public class Aes {
   public static byte[] encrypt(byte[] bytes)
       throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
       NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-    return Aes.encrypt(bytes, Aes.DEFAULT_KEY);
+    return Aes.encrypt(bytes, Aes.getKey());
   }
 
   /**
@@ -161,19 +239,9 @@ public class Aes {
       throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
       InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
     Cipher cipher = Cipher.getInstance(Aes.ALGORITHM);
-    GCMParameterSpec parameterSpec = new GCMParameterSpec(TAG_LENGTH, iv.getIV());
+    GCMParameterSpec parameterSpec = new GCMParameterSpec(Aes.TAG_LENGTH, iv.getIV());
     cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
     return cipher.doFinal(encryptedBytes);
-  }
-
-  /**
-   * Decrypts data.
-   * {@link Aes#decrypt(byte[], SecretKey, IvParameterSpec)}
-   */
-  public static byte[] decrypt(byte[] encryptedBytes)
-      throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
-      NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-    return Aes.decrypt(encryptedBytes, Aes.DEFAULT_KEY);
   }
 
   /**
@@ -190,5 +258,15 @@ public class Aes {
     byte[] contentBytes = new byte[buffer.remaining()];
     buffer.get(contentBytes);
     return Aes.decrypt(contentBytes, key, iv);
+  }
+
+  /**
+   * Decrypts data.
+   * {@link Aes#decrypt(byte[], SecretKey, IvParameterSpec)}
+   */
+  public static byte[] decrypt(byte[] encryptedBytes)
+      throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
+      NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    return Aes.decrypt(encryptedBytes, Aes.getKey());
   }
 }
