@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.crypto.BadPaddingException;
@@ -129,6 +131,13 @@ public class Client {
           return;
         }
 
+        try (ResultSet accountId = this.server.db.query("SELECT id FROM accounts WHERE login = ?", login)) {
+          accountId.next();
+          this.accountId = accountId.getLong(1);
+        } catch (SQLException e) {
+          this.server.logException(e);
+        }
+
         ByteBuffer sendBuffer = ByteBuffer.allocate(2);
         sendBuffer.putShort((short) 0);
         this.send(sendBuffer);
@@ -178,6 +187,54 @@ public class Client {
           sendBuffer.putShort((short) 1);
           this.send(sendBuffer);
         }
+      }
+      case 2 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
+        ArrayList<Message> messages = new ArrayList<>(8);
+
+        try (ResultSet sendedMessages = this.server.db.query("SELECT * FROM privateMessages WHERE sender = ?", this.accountId)) {
+          while (sendedMessages.next()) {
+            long messageId = sendedMessages.getLong(1);
+            long senderId = sendedMessages.getLong(2);
+            long receiverId = sendedMessages.getLong(3);
+            InputStream textStream = sendedMessages.getBinaryStream(4);
+            //noinspection ObjectAllocationInLoop
+            byte[] textBytes = new byte[textStream.available()];
+
+            if (textStream.read(textBytes) != textBytes.length) {
+              throw new IllegalArgumentException("read bytes != textBytes.length");
+            }
+
+            //noinspection ObjectAllocationInLoop
+            String text = new String(textBytes, StandardCharsets.UTF_8);
+            //noinspection ObjectAllocationInLoop
+            messages.add(new Message(messageId, receiverId, true, text));
+            this.server.logger.fine(
+                "%d, %d, %d, %s".formatted(messageId, senderId, receiverId, text));
+          }
+        } catch (SQLException | IOException e) {
+          this.server.logException(e);
+        }
+
+        int messagesSize = 0;
+
+        for (Message message : messages) {
+          messagesSize += message.byteSize();
+        }
+
+        ByteBuffer sendBuffer = ByteBuffer.allocate(2 + 4 + messagesSize);
+        sendBuffer.putShort((short) 7);
+        sendBuffer.putInt(messages.size());
+
+        for (Message message : messages) {
+          sendBuffer.put(message.toBytes());
+        }
+
+        this.send(sendBuffer);
       }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server
       default -> this.server.logger.finer("Unexpected operation code from client: " + code);

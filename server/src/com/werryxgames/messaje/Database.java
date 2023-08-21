@@ -74,7 +74,7 @@ public class Database {
 
       if (obj instanceof Long) {
         try {
-          statement.setLong(i + 1, (int) obj);
+          statement.setLong(i + 1, (long) obj);
         } catch (SQLException e) {
           this.server.logException(e);
           return null;

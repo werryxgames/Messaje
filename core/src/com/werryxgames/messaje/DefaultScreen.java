@@ -1,7 +1,14 @@
 package com.werryxgames.messaje;
 
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import java.util.ArrayList;
 
 /**
  * Default screen for Partitioned, that covers most cases.
@@ -9,6 +16,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
  * @since 1.0
  */
 public abstract class DefaultScreen implements SocketScreen {
+  ArrayList<Disposable> disposables = new ArrayList<>(8);
   final Messaje game;
 
   /**
@@ -75,6 +83,27 @@ public abstract class DefaultScreen implements SocketScreen {
     Viewport viewport = this.game.stage.getViewport();
     viewport.update(width, height, true);
     this.onResize(width, height);
+  }
+
+  public TextureRegionDrawable colorToDrawable(Color color) {
+    Pixmap bgPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+    this.disposables.add(bgPixmap);
+    bgPixmap.setColor(color);
+    bgPixmap.fill();
+    Texture bgTexture = new Texture(bgPixmap);
+    this.disposables.add(bgTexture);
+    return new TextureRegionDrawable(new TextureRegion(bgTexture));
+  }
+
+  abstract public void onDispose();
+
+  @Override
+  public void dispose() {
+    for (Disposable disposable : this.disposables) {
+      disposable.dispose();
+    }
+
+    this.onDispose();
   }
 
   /**
