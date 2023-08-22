@@ -20,20 +20,11 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-class FormattedMessage {
-
-  public Message message;
-  public Table table;
-
-  public FormattedMessage() {
-  }
-
-  public FormattedMessage(Message message, Table table) {
-    this.message = message;
-    this.table = table;
-  }
-}
-
+/**
+ * Class, where all known contacts and messages from selected contact are listed.
+ *
+ * @since 1.0
+ */
 public class ContactsScreen extends DefaultScreen {
 
   public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
@@ -66,7 +57,6 @@ public class ContactsScreen extends DefaultScreen {
   public void init() {
     this.game.client.send(ByteBuffer.allocate(2).putShort((short) 2));
 
-    Table table2 = new Table();
     Table usersTable = new Table();
     TextButtonStyle textButtonStyle = new TextButtonStyle();
     textButtonStyle.font = this.game.fontManager.getFont(0, 24);
@@ -95,10 +85,10 @@ public class ContactsScreen extends DefaultScreen {
     ScrollPane usersPane = new ScrollPane(usersTable, UiStyle.getScrollPaneStyle());
     usersPane.setOverscroll(false, false);
     usersPane.setFillParent(true);
+    Table table2 = new Table();
     table2.left().add(usersPane);
     table2.pack();
     table2.setBackground(usersBackground);
-    int width = Gdx.graphics.getWidth();
 
     // TODO: Add scrollbar
     this.messagesTable = new Table();
@@ -112,11 +102,15 @@ public class ContactsScreen extends DefaultScreen {
     table.pack();
     table.setFillParent(true);
     table.setBackground(this.colorToDrawable(new Color(0x121212ff)));
-//    table.setDebug(true, true);
-
     this.game.stage.addActor(table);
   }
 
+  /**
+   * Reformats simplified non-standardized markup language to formatted text from all known
+   * messages.
+   *
+   * @param width Current width of window.
+   */
   public void reformatMessages(int width) {
     if (this.messagesTable == null) {
       return;
@@ -132,6 +126,13 @@ public class ContactsScreen extends DefaultScreen {
     }
   }
 
+  /**
+   * Formats simplified non-standardized markup language to formatted text.
+   *
+   * @param message Message to format.
+   * @param messagesTable Table of message to format.
+   * @return Table with formatted labels.
+   */
   public Table reformatMessage(Message message, Table messagesTable) {
     Table containerTable;
     containerTable = messagesTable;
@@ -146,7 +147,7 @@ public class ContactsScreen extends DefaultScreen {
 
     if (message.sentByMe) {
       table.setBackground(new NinePatchDrawable(new NinePatch(ResourceLoader.loadTexture(
-        Gdx.files.internal("icons" + File.separator + "sent_message.png")), 14, 16, 24, 15)));
+          Gdx.files.internal("icons" + File.separator + "sent_message.png")), 14, 16, 24, 15)));
     } else {
       table.setBackground(new NinePatchDrawable(new NinePatch(ResourceLoader.loadTexture(
           Gdx.files.internal("icons" + File.separator + "received_message.png")), 19, 15, 20, 19)));
@@ -162,7 +163,7 @@ public class ContactsScreen extends DefaultScreen {
     this.networkHandlerQueue.add(() -> this.onMessageMain(code, serverMessage));
   }
 
-  public void onMessageMain(int code, ByteBuffer serverMessage) {
+  protected void onMessageMain(int code, ByteBuffer serverMessage) {
     if (code == 7) {
       int messagesCount = serverMessage.getInt();
       Message[] messages = new Message[messagesCount + 1];

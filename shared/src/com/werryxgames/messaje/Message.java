@@ -3,6 +3,11 @@ package com.werryxgames.messaje;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Message, that is sent from client, or to client.
+ *
+ * @since 1.0
+ */
 public class Message implements ByteSerializable {
   public long id;
   public long contactId;
@@ -12,6 +17,14 @@ public class Message implements ByteSerializable {
   public Message() {
   }
 
+  /**
+   * Default constructor for {@link Message}.
+   *
+   * @param id Identifier of message.
+   * @param contactId Identifier of sender/receiver (not current client).
+   * @param sentByMe {@code true} if message was sent by current client, {@code else} otherwise.
+   * @param text Text of sent message.
+   */
   public Message(long id, long contactId, boolean sentByMe, String text) {
     this.id = id;
     this.contactId = contactId;

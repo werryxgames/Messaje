@@ -33,7 +33,7 @@ public class DesktopLauncher {
         "icons" + File.separator + "icon196.png",
         "icons" + File.separator + "icon256.png",
         "icons" + File.separator + "icon512.png"
-        );
+    );
     new Lwjgl3Application(new Messaje(), config);
   }
 }

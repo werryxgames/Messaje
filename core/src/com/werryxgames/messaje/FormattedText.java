@@ -3,37 +3,17 @@ package com.werryxgames.messaje;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Stack;
 
-class TextPart {
-  final public TextPart PARENT;
-  final public float FONT_SCALE;
-  final public FontManager FONT_MANAGER;
-  final public int FONT_ID;
-  final public int FONT_SIZE;
-  final public String TEXT;
-  final public Label LABEL;
-
-  TextPart(TextPart parent, String text, float fontScale, Color color, FontManager fontManager,
-      int fontId, int fontSize) {
-    this.PARENT = parent;
-    this.FONT_SCALE = fontScale;
-    this.FONT_MANAGER = fontManager;
-    this.FONT_ID = fontId;
-    this.FONT_SIZE = fontSize;
-    this.TEXT = text;
-
-    LabelStyle labelStyle = new LabelStyle(fontManager.getFont(fontId,
-        (int) (fontSize * fontScale)), color);
-    this.LABEL = new Label(text, labelStyle);
-  }
-}
-
+/**
+ * Class for formatting messages to labels.
+ *
+ * @since 1.0
+ */
 public class FormattedText {
 
   protected static final String[] TEXT_FORMATTERS = new String[]{
@@ -43,30 +23,44 @@ public class FormattedText {
       "**", "*", "^", "_", "`"
   };
 
+  /**
+   * Formats parent with text.
+   *
+   * @param parent Table, that contains labels.
+   * @param text Markup language.
+   * @param color Color of text.
+   * @param fontManager Instance of {@link FontManager}.
+   * @param fontId Identifier of font.
+   * @param fontSize Size of font.
+   * @param maxWidthValue Maximum width, after which text will be wrapped.
+   */
   public static void formatLabels(Table parent, String text, Color color,
       FontManager fontManager, int fontId, int fontSize, Value maxWidthValue) {
     float maxWidth = maxWidthValue.get();
     Table table = new Table();
     table.left();
-    ArrayList<TextPart> textParts = FormattedText.formatText(text, color, fontManager, 1, 0, 2, 3, 4,
+    ArrayList<TextPart> textParts = FormattedText.formatText(text, color, fontManager, 1, 0, 2, 3,
+        4,
         fontSize);
 
     for (int i = 0; i < textParts.size(); i++) {
       TextPart textPart = textParts.get(i);
-      String str1 = textPart.LABEL.getText().toString();
+      String str1 = textPart.label.getText().toString();
       StringBuilder str2 = new StringBuilder(32);
       int constantWidth = 0;
 
       for (Actor actor : table.getChildren()) {
-        if (!(actor instanceof Label label)) continue;
+        if (!(actor instanceof Label label)) {
+          continue;
+        }
 
         label.getGlyphLayout().setText(label.getStyle().font, label.getText());
         constantWidth += label.getGlyphLayout().width;
       }
 
-      textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
+      textPart.label.getGlyphLayout().setText(textPart.label.getStyle().font, str1);
 
-      while (constantWidth + textPart.LABEL.getGlyphLayout().width > maxWidth) {
+      while (constantWidth + textPart.label.getGlyphLayout().width > maxWidth) {
         str2.insert(0, str1.charAt(str1.length() - 1));
         str1 = str1.substring(0, str1.length() - 1);
 
@@ -74,21 +68,22 @@ public class FormattedText {
           throw new RuntimeException("Screen width is too low to render 1 formatted character");
         }
 
-        textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
+        textPart.label.getGlyphLayout().setText(textPart.label.getStyle().font, str1);
       }
 
       if (str2.length() == 0) {
-        table.add(textPart.LABEL);
+        table.add(textPart.label);
       } else {
-        Label label1 = textPart.LABEL;
+        Label label1 = textPart.label;
         label1.setText(str1);
-        TextPart textPart2 = new TextPart(textPart, str2.toString(), textPart.FONT_SCALE, textPart.LABEL.getColor(), textPart.FONT_MANAGER, textPart.FONT_ID, textPart.FONT_SIZE);
         table.add(label1).expandX();
         table.pack();
         parent.add(table);
         parent.row();
         table = new Table();
         table.left();
+        TextPart textPart2 = new TextPart(textPart, str2.toString(), textPart.fontScale,
+            textPart.label.getColor(), textPart.fontManager, textPart.fontId, textPart.fontSize);
         textParts.add(i + 1, textPart2);
       }
     }
@@ -97,6 +92,12 @@ public class FormattedText {
     parent.add(table);
   }
 
+  /**
+   * Returns index of formatter in array.
+   *
+   * @param str String, ending with formatter.
+   * @return -1 if string is not ending with formatter, index of formatter in array otherwise.
+   */
   public static int getFormatterIndex(String str) {
     int i = 0;
 
@@ -111,6 +112,12 @@ public class FormattedText {
     return -1;
   }
 
+  /**
+   * Look at {@link FormattedText#getFormatterIndex(String)}.
+   *
+   * @param ender Ender to check.
+   * @return -1 if str doesn't end with ender, index of ender in array otherwise.
+   */
   public static int getFormatEnder(String str, String ender) {
     int i = 0;
 
@@ -130,6 +137,12 @@ public class FormattedText {
     return -1;
   }
 
+  /**
+   * Parses string to markup language tokens.
+   *
+   * @param string String to parse.
+   * @return Array of separated tokens.
+   */
   public static String[] getTokens(String string) {
     ArrayList<String> tokens = new ArrayList<>(16);
 
@@ -181,6 +194,20 @@ public class FormattedText {
     return tokens.toArray(array);
   }
 
+  /**
+   * Formats text.
+   *
+   * @param text Text to format.
+   * @param initialColor Default color, that will be used, until directly specified in text.
+   * @param fontManager Font manager to use.
+   * @param normalFontId Identifier of normal font in specified earlier fontManager.
+   * @param lightFontId Identifier of light font in specified earlier fontManager.
+   * @param italicFontId Identifier of italic font in specified earlier fontManager.
+   * @param boldFontId Identifier of bold font in specified earlier fontManager.
+   * @param boldItalicFontId Identifier of bold italic font in specified earlier fontManager.
+   * @param initialFontSize Default font size, that will be used, until directly specified in text.
+   * @return {@link ArrayList} of {@link TextPart}s.
+   */
   public static ArrayList<TextPart> formatText(String text,
       Color initialColor, FontManager fontManager, int normalFontId, int lightFontId,
       int italicFontId, int boldFontId, int boldItalicFontId, int initialFontSize) {

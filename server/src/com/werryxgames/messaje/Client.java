@@ -26,6 +26,7 @@ import javax.crypto.NoSuchPaddingException;
  * @since 1.0
  */
 public class Client {
+
   public Server server;
   public Socket socket;
   public DataInputStream inputStream;
@@ -131,7 +132,8 @@ public class Client {
           return;
         }
 
-        try (ResultSet accountId = this.server.db.query("SELECT id FROM accounts WHERE login = ?", login)) {
+        try (ResultSet accountId = this.server.db.query("SELECT id FROM accounts WHERE login = ?",
+            login)) {
           accountId.next();
           this.accountId = accountId.getLong(1);
         } catch (SQLException e) {
@@ -196,7 +198,8 @@ public class Client {
 
         ArrayList<Message> messages = new ArrayList<>(8);
 
-        try (ResultSet sendedMessages = this.server.db.query("SELECT * FROM privateMessages WHERE sender = ?", this.accountId)) {
+        try (ResultSet sendedMessages = this.server.db.query(
+            "SELECT * FROM privateMessages WHERE sender = ?", this.accountId)) {
           while (sendedMessages.next()) {
             long messageId = sendedMessages.getLong(1);
             long senderId = sendedMessages.getLong(2);
@@ -312,8 +315,7 @@ public class Client {
   }
 
   /**
-   * Sends message to client.
-   * See also {@link Client#send(byte[])}.
+   * Sends message to client. See also {@link Client#send(byte[])}.
    *
    * @param buffer Data to be sent.
    */

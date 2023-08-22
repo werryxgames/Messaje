@@ -85,6 +85,12 @@ public abstract class DefaultScreen implements SocketScreen {
     this.onResize(width, height);
   }
 
+  /**
+   * Converts color to {@link TextureRegionDrawable}.
+   *
+   * @param color Color to convert.
+   * @return Converted drawable.
+   */
   public TextureRegionDrawable colorToDrawable(Color color) {
     Pixmap bgPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
     this.disposables.add(bgPixmap);
@@ -95,7 +101,7 @@ public abstract class DefaultScreen implements SocketScreen {
     return new TextureRegionDrawable(new TextureRegion(bgTexture));
   }
 
-  abstract public void onDispose();
+  abstract void onDispose();
 
   @Override
   public void dispose() {
