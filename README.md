@@ -1,5 +1,5 @@
 # Messaje
-[![Messaje](https://lh3.googleusercontent.com/u/2/drive-viewer/AITFw-x4mtr-vjeqzxo9PE7zruZFLmXcOaclfbzi9rlEzVN9ULOb7bXzDERhIzgZgxr67wF9Lw4J_djsQAUjB3OkEl_2lMqZRA=w1366-h651)](https://github.com/werryxgames/Messaje/releases)
+<p align="center"><a href="https://github.com/werryxgames/Messaje/releases" target="blank"><img src="https://github.com/werryxgames/Messaje/blob/main/icons/icon.png" width="128" alt="Messaje logo"></a></p>
 
 [![CodeQL](https://github.com/werryxgames/Messaje/actions/workflows/codeql.yml/badge.svg)](https://github.com/werryxgames/Messaje/actions/workflows/codeql.yml)
 [![reviewdog](https://github.com/werryxgames/Messaje/actions/workflows/reviewdog.yml/badge.svg)](https://github.com/werryxgames/Messaje/actions/workflows/reviewdog.yml)
