@@ -1,5 +1,6 @@
 package com.werryxgames.messaje;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
@@ -7,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Value;
+import com.badlogic.gdx.scenes.scene2d.ui.Value.Fixed;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
@@ -69,9 +71,16 @@ public class ContactsScreen extends DefaultScreen {
     table2.pack();
     table2.setBackground(usersBackground);
 
+    Table table3 = new Table();
+    table3.left();
+    // TODO: Re-format in onResize()
+    FormattedText.formatLabels(table3, "Test **bold** *italic* _sup_ normal. TEST 2 VERY LONG TEXT *WWWWWWWWWWWWWWWWWW* **WMWMWMWMWMWMWMMWMWMWMMWMWMWM*WMWMMWMWWMWMMWMWMWMWMMWM*.**", 400, 100, Color.WHITE, this.game.fontManager, 0, 16,
+        new Fixed(Gdx.graphics.getWidth() - 300));
+    table3.pack();
+
     Table table = new Table();
     table.center().left().add(table2).width(300).height(Value.percentHeight(1f, table));
-    FormattedText.formatLabels(table, "Test **bold** *italic* _sup_ normal. TEST 2 VERY LONG TEXT *WWWWWWWWWWWWWWWWWW* **WMWMWMWMWMWMWMMWMWMWMMWMWMWM*WMWMMWMWWMWMMWMWMWMWMMWM*.**", 400, 100, Color.WHITE, this.game.fontManager, 0, 16, 400);
+    table.add(table3).expandX().height(Value.percentHeight(1f, table));
     table.pack();
     table.setFillParent(true);
     table.setBackground(this.colorToDrawable(new Color(0x121212ff)));

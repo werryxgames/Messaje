@@ -5,8 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Stack;
 
@@ -69,8 +69,10 @@ public class FormattedText {
   };
 
   public static void formatLabels(Table parent, String text, int x, int y, Color color,
-      FontManager fontManager, int fontId, int fontSize, int maxWidth) {
+      FontManager fontManager, int fontId, int fontSize, Value maxWidthValue) {
+    float maxWidth = maxWidthValue.get();
     Table table = new Table();
+    table.left();
     ArrayList<TextPart> textParts = FormattedText.formatText(text, x, y, color, fontManager, 1, 0, 2, 3, 4,
         fontSize);
 
@@ -78,33 +80,37 @@ public class FormattedText {
       TextPart textPart = textParts.get(i);
       String str1 = textPart.LABEL.getText().toString();
       StringBuilder str2 = new StringBuilder(32);
-      int breakIndex = 0;
       int constantWidth = 0;
 
-      for (Actor label : table.getChildren()) {
-        constantWidth += label.getWidth();
+      for (Actor actor : table.getChildren()) {
+        if (!(actor instanceof Label label)) continue;
+
+        label.getGlyphLayout().setText(label.getStyle().font, label.getText());
+        constantWidth += label.getGlyphLayout().width;
       }
 
+      System.out.println(constantWidth + ", " + maxWidth);
       textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
 
       while (constantWidth + textPart.LABEL.getGlyphLayout().width > maxWidth) {
         str2.append(str1.charAt(str1.length() - 1));
         str1 = str1.substring(0, str1.length() - 1);
         textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
-        breakIndex++;
+        System.out.println(constantWidth + textPart.LABEL.getGlyphLayout().width);
       }
 
       if (str2.length() == 0) {
         table.add(textPart.LABEL);
       } else {
         Label label1 = textPart.LABEL;
-        Label label2 = new Label(label1.getText(), label1.getStyle());
+        label1.setText(str1);
         TextPart textPart2 = new TextPart(textPart, str2.toString(), textPart.FONT_SCALE, textPart.LABEL.getColor(), textPart.FONT_MANAGER, textPart.FONT_ID, textPart.FONT_SIZE);
-        table.add(label1);
+        table.add(label1).expandX();
         table.pack();
         parent.add(table);
         parent.row();
         table = new Table();
+        table.left();
         textParts.add(i + 1, textPart2);
       }
     }
