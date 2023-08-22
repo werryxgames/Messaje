@@ -1,8 +1,8 @@
 <p align="center"><a href="https://github.com/werryxgames/Messaje/releases" target="blank"><img src="https://github.com/werryxgames/Messaje/blob/main/icons/icon.png" width="128" alt="Messaje logo"></a></p>
-<div align="center>
+<p align="center>
 <a href="https://github.com/werryxgames/Messaje/actions/workflows/codeql.yml"><img src="https://github.com/werryxgames/Messaje/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
 <a href="https://github.com/werryxgames/Messaje/actions/workflows/reviewdog.yml"><img src="https://github.com/werryxgames/Messaje/actions/workflows/reviewdog.yml/badge.svg" alt="reviewdog"></a>
-</div>
+</p>
 
 Fast cross-platform Messaje client and server, written in Java for mobile devices and personal
 computers.
