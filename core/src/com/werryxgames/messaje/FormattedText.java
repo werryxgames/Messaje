@@ -11,10 +11,7 @@ import java.util.Objects;
 import java.util.Stack;
 
 class TextPart {
-
   final public TextPart PARENT;
-  final public int POSITION_X;
-  final public int POSITION_Y;
   final public float FONT_SCALE;
   final public FontManager FONT_MANAGER;
   final public int FONT_ID;
@@ -25,8 +22,6 @@ class TextPart {
   TextPart(TextPart parent, String text, float fontScale, Color color, FontManager fontManager,
       int fontId, int fontSize) {
     this.PARENT = parent;
-    this.POSITION_X = -1;
-    this.POSITION_Y = -1;
     this.FONT_SCALE = fontScale;
     this.FONT_MANAGER = fontManager;
     this.FONT_ID = fontId;
@@ -36,26 +31,6 @@ class TextPart {
     LabelStyle labelStyle = new LabelStyle(fontManager.getFont(fontId,
         (int) (fontSize * fontScale)), color);
     this.LABEL = new Label(text, labelStyle);
-
-//    this.LABEL.setPosition(this.PARENT.LABEL.getX() + this.PARENT.LABEL.getWidth(), this.PARENT.LABEL.getY());
-  }
-
-  TextPart(int x, int y, String text, float fontScale, Color color, FontManager fontManager,
-      int fontId, int fontSize) {
-    this.PARENT = null;
-    this.POSITION_X = x;
-    this.POSITION_Y = y;
-    this.FONT_SCALE = fontScale;
-    this.FONT_MANAGER = fontManager;
-    this.FONT_ID = fontId;
-    this.FONT_SIZE = fontSize;
-    this.TEXT = text;
-
-    LabelStyle labelStyle = new LabelStyle(fontManager.getFont(fontId,
-        (int) (fontSize * fontScale)), color);
-    this.LABEL = new Label(text, labelStyle);
-
-//    this.LABEL.setPosition(x, y);
   }
 }
 
@@ -68,12 +43,12 @@ public class FormattedText {
       "**", "*", "^", "_", "`"
   };
 
-  public static void formatLabels(Table parent, String text, int x, int y, Color color,
+  public static void formatLabels(Table parent, String text, Color color,
       FontManager fontManager, int fontId, int fontSize, Value maxWidthValue) {
     float maxWidth = maxWidthValue.get();
     Table table = new Table();
     table.left();
-    ArrayList<TextPart> textParts = FormattedText.formatText(text, x, y, color, fontManager, 1, 0, 2, 3, 4,
+    ArrayList<TextPart> textParts = FormattedText.formatText(text, color, fontManager, 1, 0, 2, 3, 4,
         fontSize);
 
     for (int i = 0; i < textParts.size(); i++) {
@@ -89,14 +64,17 @@ public class FormattedText {
         constantWidth += label.getGlyphLayout().width;
       }
 
-      System.out.println(constantWidth + ", " + maxWidth);
       textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
 
       while (constantWidth + textPart.LABEL.getGlyphLayout().width > maxWidth) {
-        str2.append(str1.charAt(str1.length() - 1));
+        str2.insert(0, str1.charAt(str1.length() - 1));
         str1 = str1.substring(0, str1.length() - 1);
+
+        if (str1.length() == 0) {
+          throw new RuntimeException("Screen width is too low to render 1 formatted character");
+        }
+
         textPart.LABEL.getGlyphLayout().setText(textPart.LABEL.getStyle().font, str1);
-        System.out.println(constantWidth + textPart.LABEL.getGlyphLayout().width);
       }
 
       if (str2.length() == 0) {
@@ -155,55 +133,55 @@ public class FormattedText {
   public static String[] getTokens(String string) {
     ArrayList<String> tokens = new ArrayList<>(16);
 
-    String buffer = "";
+    StringBuilder buffer = new StringBuilder(16);
     int sameOperator = 0;
     char[] charArray = string.toCharArray();
 
     for (char c : charArray) {
       if (c == '*' || c == '_' || c == '^' || c == '`') {
         if (sameOperator == 0) {
-          tokens.add(buffer);
-          buffer = String.valueOf(c);
+          tokens.add(buffer.toString());
+          buffer = new StringBuilder(String.valueOf(c));
           sameOperator = 1;
         } else {
           if (buffer.charAt(buffer.length() - 1) == c) {
             sameOperator++;
-            buffer += c;
+            buffer.append(c);
           } else {
             if (sameOperator > 2 || c != '*') {
               if (tokens.size() == 0) {
-                tokens.add(buffer);
+                tokens.add(buffer.toString());
               } else {
                 tokens.set(tokens.size() - 1, tokens.get(tokens.size() - 1) + buffer);
               }
             } else {
-              tokens.add(buffer);
+              tokens.add(buffer.toString());
             }
 
-            buffer = String.valueOf(c);
+            buffer = new StringBuilder(String.valueOf(c));
             sameOperator = 1;
           }
         }
       } else {
         if (sameOperator > 0) {
-          tokens.add(buffer);
-          buffer = String.valueOf(c);
+          tokens.add(buffer.toString());
+          buffer = new StringBuilder(String.valueOf(c));
           sameOperator = 0;
         } else {
-          buffer += c;
+          buffer.append(c);
         }
       }
     }
 
     if (buffer.length() > 0) {
-      tokens.add(buffer);
+      tokens.add(buffer.toString());
     }
 
     String[] array = new String[tokens.size()];
     return tokens.toArray(array);
   }
 
-  public static ArrayList<TextPart> formatText(String text, int initialPositionX, int initialPositionY,
+  public static ArrayList<TextPart> formatText(String text,
       Color initialColor, FontManager fontManager, int normalFontId, int lightFontId,
       int italicFontId, int boldFontId, int boldItalicFontId, int initialFontSize) {
     ArrayList<TextPart> textParts = new ArrayList<>(8);
@@ -292,7 +270,7 @@ public class FormattedText {
         }
 
         if (lastPart == null) {
-          currentPart = new TextPart(initialPositionX, initialPositionY, prevToken, fontScale,
+          currentPart = new TextPart(null, prevToken, fontScale,
               initialColor, fontManager, fontId, initialFontSize);
         } else {
           currentPart = new TextPart(lastPart, prevToken, fontScale, initialColor, fontManager,
