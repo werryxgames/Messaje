@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.crypto.BadPaddingException;
@@ -24,6 +26,7 @@ import javax.crypto.NoSuchPaddingException;
  * @since 1.0
  */
 public class Client {
+
   public Server server;
   public Socket socket;
   public DataInputStream inputStream;
@@ -129,6 +132,14 @@ public class Client {
           return;
         }
 
+        try (ResultSet accountId = this.server.db.query("SELECT id FROM accounts WHERE login = ?",
+            login)) {
+          accountId.next();
+          this.accountId = accountId.getLong(1);
+        } catch (SQLException e) {
+          this.server.logException(e);
+        }
+
         ByteBuffer sendBuffer = ByteBuffer.allocate(2);
         sendBuffer.putShort((short) 0);
         this.send(sendBuffer);
@@ -177,6 +188,154 @@ public class Client {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 1);
           this.send(sendBuffer);
+        }
+      }
+      case 2 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
+        ArrayList<Message> messages = new ArrayList<>(64);
+        ArrayList<User> users = new ArrayList<>(16);
+        ArrayList<Long> userIds = new ArrayList<>(16);
+
+        try (ResultSet sentMessages = this.server.db.query(
+            "SELECT * FROM privateMessages WHERE sender = ?", this.accountId)) {
+          while (sentMessages.next()) {
+            long messageId = sentMessages.getLong(1);
+            long senderId = sentMessages.getLong(2);
+            long receiverId = sentMessages.getLong(3);
+
+            if (!userIds.contains(receiverId)) {
+              String name = "<unnamed>";
+
+              try (ResultSet userName = this.server.db.query(
+                  "SELECT login FROM accounts WHERE id = ?", receiverId)) {
+                if (userName.next()) {
+                  name = userName.getString(1);
+                }
+              }
+
+              users.add(new User(receiverId, name));
+              userIds.add(receiverId);
+            }
+
+            InputStream textStream = sentMessages.getBinaryStream(4);
+            int available = textStream.available();
+            String text;
+
+            if (available > 0) {
+              //noinspection ObjectAllocationInLoop
+              byte[] textBytes = new byte[textStream.available()];
+              int attempt = 0;
+              int totalReadBytes = 0;
+
+              while (attempt < 16) {
+                totalReadBytes += textStream.read(textBytes, totalReadBytes,
+                    textBytes.length - totalReadBytes);
+                attempt++;
+
+                if (totalReadBytes >= textBytes.length) {
+                  break;
+                }
+              }
+
+              if (totalReadBytes != textBytes.length) {
+                throw new IllegalArgumentException("read bytes != textBytes.length");
+              }
+
+              //noinspection ObjectAllocationInLoop
+              text = new String(textBytes, StandardCharsets.UTF_8);
+            } else {
+              text = "";
+            }
+
+            //noinspection ObjectAllocationInLoop
+            messages.add(new Message(messageId, receiverId, true, text));
+          }
+        } catch (SQLException | IOException e) {
+          this.server.logException(e);
+        }
+
+        try (ResultSet receivedMessages = this.server.db.query(
+            "SELECT * FROM privateMessages WHERE receiver = ?", this.accountId)) {
+          while (receivedMessages.next()) {
+            long messageId = receivedMessages.getLong(1);
+            long senderId = receivedMessages.getLong(2);
+
+            if (!userIds.contains(senderId)) {
+              String name = "<unnamed>";
+
+              try (ResultSet userName = this.server.db.query(
+                  "SELECT login FROM accounts WHERE id = ?", senderId)) {
+                if (userName.next()) {
+                  name = userName.getString(1);
+                }
+              }
+
+              users.add(new User(senderId, name));
+              userIds.add(senderId);
+            }
+            long receiverId = receivedMessages.getLong(3);
+            InputStream textStream = receivedMessages.getBinaryStream(4);
+            //noinspection ObjectAllocationInLoop
+            byte[] textBytes = new byte[textStream.available()];
+
+            if (textStream.read(textBytes) != textBytes.length) {
+              throw new IllegalArgumentException("read bytes != textBytes.length");
+            }
+
+            //noinspection ObjectAllocationInLoop
+            String text = new String(textBytes, StandardCharsets.UTF_8);
+            //noinspection ObjectAllocationInLoop
+            messages.add(new Message(messageId, receiverId, false, text));
+            this.server.logger.fine(
+                "%d, %d, %d, %s".formatted(messageId, senderId, receiverId, text));
+          }
+        } catch (SQLException | IOException e) {
+          this.server.logException(e);
+        }
+
+        int usersSize = 0;
+
+        for (User user : users) {
+          usersSize += user.byteSize();
+        }
+
+        int messagesSize = 0;
+
+        for (Message message : messages) {
+          messagesSize += message.byteSize();
+        }
+
+        ByteBuffer sendBuffer = ByteBuffer.allocate(2 + 4 + usersSize + 4 + messagesSize);
+        sendBuffer.putShort((short) 7);
+        sendBuffer.putInt(users.size());
+
+        for (User user : users) {
+          sendBuffer.put(user.toBytes());
+        }
+
+        sendBuffer.putInt(messages.size());
+
+        for (Message message : messages) {
+          sendBuffer.put(message.toBytes());
+        }
+
+        this.send(sendBuffer);
+      }
+      case 3 -> {
+        long contactId = buffer.getLong();
+        short messageLength = buffer.getShort();
+        byte[] messageBytes = new byte[messageLength];
+        buffer.get(messageBytes);
+        String message = new String(messageBytes, StandardCharsets.UTF_8);
+
+        if (this.server.db.update(
+            "INSERT INTO privateMessages (sender, receiver, text) VALUES (?, ?, ?)", this.accountId,
+            contactId, message) < 1) {
+          this.server.logger.warning("Message not delivered");
         }
       }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server
@@ -255,8 +414,7 @@ public class Client {
   }
 
   /**
-   * Sends message to client.
-   * See also {@link Client#send(byte[])}.
+   * Sends message to client. See also {@link Client#send(byte[])}.
    *
    * @param buffer Data to be sent.
    */

@@ -1,10 +1,8 @@
 package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -12,14 +10,11 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.utils.Disposable;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 
 /**
  * Screen for logging in to account.
@@ -27,8 +22,6 @@ import java.util.ArrayList;
  * @since 1.0
  */
 public class LoginScreen extends DefaultScreen {
-  ArrayList<Disposable> disposables = new ArrayList<>(8);
-
   /**
    * Default constructor for {@code DefaultScreen}.
    *
@@ -58,7 +51,7 @@ public class LoginScreen extends DefaultScreen {
     );
     table2.add(loginLabel).padRight(4).right();
     TextField loginField = new TextField(
-        "",
+        "Werryx",
         UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24)
     );
     table2.add(loginField).padLeft(4).width(220);
@@ -69,7 +62,7 @@ public class LoginScreen extends DefaultScreen {
     );
     table2.add(passwordLabel).padRight(4).right();
     TextField passwordField = new TextField(
-        "",
+        "123456",
         UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24)
     );
     passwordField.setPasswordMode(true);
@@ -157,13 +150,7 @@ public class LoginScreen extends DefaultScreen {
     table.setFillParent(true);
     table.pack();
 
-    Pixmap bgPixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-    this.disposables.add(bgPixmap);
-    bgPixmap.setColor(0x121212ff);
-    bgPixmap.fill();
-    Texture bgTexture = new Texture(bgPixmap);
-    this.disposables.add(bgTexture);
-    table.setBackground(new TextureRegionDrawable(new TextureRegion(bgTexture)));
+    table.setBackground(this.colorToDrawable(new Color(0x121212ff)));
 
     NinePatch panelNinePatch = new NinePatch(
         ResourceLoader.loadTexture(Gdx.files.internal("ui" + File.separator + "panel_bg.png")), 14,
@@ -175,7 +162,9 @@ public class LoginScreen extends DefaultScreen {
 
   @Override
   public void onMessage(int code, ByteBuffer message) {
-    this.game.logger.fine("Message from server: " + code + ", " + message.toString());
+    if (code == 0 || code == 6) {
+      this.changeScreen(new ContactsScreen(this.game));
+    }
   }
 
   @Override
@@ -204,9 +193,6 @@ public class LoginScreen extends DefaultScreen {
   }
 
   @Override
-  public void dispose() {
-    for (Disposable disposable : this.disposables) {
-      disposable.dispose();
-    }
+  public void onDispose() {
   }
 }

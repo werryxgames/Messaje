@@ -35,9 +35,15 @@ public class Config {
     }
 
     byte[] fileBytes = new byte[inputStream.available()];
+    int readBytes = 0;
+    int reads = 0;
 
-    if (inputStream.read(fileBytes) != fileBytes.length) {
-      throw new IllegalArgumentException("Read bytes != available bytes");
+    while (inputStream.available() > 0) {
+      readBytes += inputStream.read(fileBytes, readBytes, fileBytes.length - readBytes);
+
+      if (++reads >= 128) {
+        throw new RuntimeException("Can't read bytes from properties file in 128 iterations");
+      }
     }
 
     String properties = Aes.decryptProperties(fileBytes);
@@ -97,7 +103,7 @@ public class Config {
    * Returns {@link String} from properties file by {@code configKey}, or {@code defaultValue} if
    * not found.
    *
-   * @param configKey Key in properties file.
+   * @param configKey    Key in properties file.
    * @param defaultValue Default string value.
    * @return Property value or {@code defaultValue}.
    */
@@ -112,7 +118,7 @@ public class Config {
   /**
    * See {@link Config#get(String, String)}.
    *
-   * @param configKey Key in properties file.
+   * @param configKey    Key in properties file.
    * @param defaultValue Default integer value.
    * @return Property value or {@code defaultValue}.
    */
@@ -127,7 +133,7 @@ public class Config {
   /**
    * See {@link Config#get(String, String)}.
    *
-   * @param configKey Key in properties file.
+   * @param configKey    Key in properties file.
    * @param defaultValue Default boolean value.
    * @return Property value or {@code defaultValue}.
    */
