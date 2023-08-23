@@ -15,14 +15,6 @@ import java.util.Stack;
  * @since 1.0
  */
 public class FormattedText {
-
-  protected static final String[] TEXT_FORMATTERS = new String[]{
-      "**", "*", "^", "_", "`"
-  };
-  protected static final String[] FORMAT_ENDERS = new String[]{
-      "**", "*", "^", "_", "`"
-  };
-
   /**
    * Formats parent with text.
    *
@@ -39,9 +31,8 @@ public class FormattedText {
     float maxWidth = maxWidthValue.get();
     Table table = new Table();
     table.left();
-    ArrayList<TextPart> textParts = FormattedText.formatText(text, color, fontManager, 1, 0, 2, 3,
-        4,
-        fontSize);
+    ArrayList<TextPart> textParts = FormattedText.formatText(text, color, fontManager, 0, 1, 2, 3,
+        4, 5, fontSize);
 
     for (int i = 0; i < textParts.size(); i++) {
       TextPart textPart = textParts.get(i);
@@ -76,9 +67,9 @@ public class FormattedText {
       } else {
         Label label1 = textPart.label;
         label1.setText(str1);
-        table.add(label1).expandX();
+        table.add(label1);
         table.pack();
-        parent.add(table);
+        parent.add(table).left();
         parent.row();
         table = new Table();
         table.left();
@@ -89,52 +80,7 @@ public class FormattedText {
     }
 
     table.pack();
-    parent.add(table);
-  }
-
-  /**
-   * Returns index of formatter in array.
-   *
-   * @param str String, ending with formatter.
-   * @return -1 if string is not ending with formatter, index of formatter in array otherwise.
-   */
-  public static int getFormatterIndex(String str) {
-    int i = 0;
-
-    for (String s : TEXT_FORMATTERS) {
-      if (str.endsWith(s)) {
-        return i;
-      }
-
-      i++;
-    }
-
-    return -1;
-  }
-
-  /**
-   * Look at {@link FormattedText#getFormatterIndex(String)}.
-   *
-   * @param ender Ender to check.
-   * @return -1 if str doesn't end with ender, index of ender in array otherwise.
-   */
-  public static int getFormatEnder(String str, String ender) {
-    int i = 0;
-
-    for (String s : FORMAT_ENDERS) {
-      if (!Objects.equals(s, ender)) {
-        i++;
-        continue;
-      }
-
-      if (str.endsWith(s)) {
-        return i;
-      }
-
-      break;
-    }
-
-    return -1;
+    parent.add(table).left();
   }
 
   /**
@@ -205,18 +151,20 @@ public class FormattedText {
    * @param italicFontId Identifier of italic font in specified earlier fontManager.
    * @param boldFontId Identifier of bold font in specified earlier fontManager.
    * @param boldItalicFontId Identifier of bold italic font in specified earlier fontManager.
+   * @param monospaceFontId Identifier of monospace font in specified earlier fontManager.
    * @param initialFontSize Default font size, that will be used, until directly specified in text.
    * @return {@link ArrayList} of {@link TextPart}s.
    */
   public static ArrayList<TextPart> formatText(String text,
       Color initialColor, FontManager fontManager, int normalFontId, int lightFontId,
-      int italicFontId, int boldFontId, int boldItalicFontId, int initialFontSize) {
+      int italicFontId, int boldFontId, int boldItalicFontId, int monospaceFontId, int initialFontSize) {
     ArrayList<TextPart> textParts = new ArrayList<>(8);
     Stack<String> textFormatters = new Stack<>();
     String[] tokens = FormattedText.getTokens(text);
     String prevToken = null;
     TextPart lastPart = null;
     boolean bold = false;
+    boolean light = false;
     boolean italic = false;
     boolean sup = false;
     boolean sub = false;
@@ -252,6 +200,11 @@ public class FormattedText {
             textFormatters.pop();
             continue;
           }
+          if (Objects.equals(token, "|")) {
+            light = false;
+            textFormatters.pop();
+            continue;
+          }
 
           throw new IllegalStateException("Unknown formatter: '" + token + "'");
         }
@@ -272,6 +225,9 @@ public class FormattedText {
       } else if (Objects.equals(token, "`")) {
         mono = true;
         textFormatters.add(token);
+      } else if (Objects.equals(token, "|")) {
+        light = true;
+        textFormatters.add(token);
       } else {
         prevToken = token;
       }
@@ -283,7 +239,9 @@ public class FormattedText {
         int fontId;
 
         if (mono) {
-          fontId = boldItalicFontId;
+          fontId = monospaceFontId;
+        } else if (light) {
+          fontId = lightFontId;
         } else if (bold) {
           if (italic) {
             fontId = boldItalicFontId;

@@ -19,7 +19,7 @@ public class TextPart {
   public final String text;
   public final Label label;
 
-  TextPart(TextPart parent, String text, float fontScale, Color color, FontManager fontManager,
+  public TextPart(TextPart parent, String text, float fontScale, Color color, FontManager fontManager,
       int fontId, int fontSize) {
     this.parent = parent;
     this.fontScale = fontScale;

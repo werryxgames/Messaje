@@ -147,7 +147,7 @@ public class ContactsScreen extends DefaultScreen {
 
     if (message.sentByMe) {
       table.setBackground(new NinePatchDrawable(new NinePatch(ResourceLoader.loadTexture(
-          Gdx.files.internal("icons" + File.separator + "sent_message.png")), 14, 16, 24, 15)));
+          Gdx.files.internal("icons" + File.separator + "sent_message.png")), 19, 15, 20, 19)));
     } else {
       table.setBackground(new NinePatchDrawable(new NinePatch(ResourceLoader.loadTexture(
           Gdx.files.internal("icons" + File.separator + "received_message.png")), 19, 15, 20, 19)));
