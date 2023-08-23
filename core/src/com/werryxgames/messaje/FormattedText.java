@@ -39,7 +39,7 @@ public class FormattedText {
       TextPart textPart = textParts.get(i);
       String str1 = textPart.label.getText().toString();
       StringBuilder str2 = new StringBuilder(32);
-      int constantWidth = 0;
+      float constantWidth = 0;
 
       for (Actor actor : table.getChildren()) {
         if (!(actor instanceof Label label)) {
