@@ -305,6 +305,16 @@ public class Client {
 
         this.send(sendBuffer);
       }
+      case 3 -> {
+        long contactId = buffer.getLong();
+        short messageLength = buffer.getShort();
+        byte[] messageBytes = new byte[messageLength];
+        buffer.get(messageBytes);
+        String message = new String(messageBytes, StandardCharsets.UTF_8);
+
+        System.out.printf("User %d sent message to user %d: \"%s\"%n", this.accountId, contactId,
+            message);
+      }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server
       default -> this.server.logger.finer("Unexpected operation code from client: " + code);
     }

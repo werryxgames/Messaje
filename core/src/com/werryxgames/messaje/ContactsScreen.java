@@ -17,6 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,6 +35,7 @@ public class ContactsScreen extends DefaultScreen {
   ArrayList<User> users;
   Table messagesTable;
   Table usersPaneContainer;
+  public int currentUser = 0;
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -114,7 +116,13 @@ public class ContactsScreen extends DefaultScreen {
       @Override
       public void changed(ChangeEvent event, Actor actor) {
         System.out.println("Sending message...");
-        // TODO: Send message
+        byte[] messageBytes = messageArea.getText().getBytes(StandardCharsets.UTF_8);
+        ByteBuffer buffer = ByteBuffer.allocate(2 + 8 + 2 + messageBytes.length);
+        buffer.putShort((short) 3);
+        buffer.putLong(ContactsScreen.this.currentUser);
+        buffer.putShort((short) messageBytes.length);
+        buffer.put(messageBytes);
+        ContactsScreen.this.game.client.send(buffer);
         messageArea.setText("");
       }
     });
@@ -250,6 +258,7 @@ public class ContactsScreen extends DefaultScreen {
             }
 
             ContactsScreen.this.reformatMessages();
+            ContactsScreen.this.currentUser = finalI;
           }
         });
         usersTable.add(button).width(300 - 18).height(40);
