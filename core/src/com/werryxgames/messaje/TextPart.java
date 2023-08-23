@@ -19,7 +19,19 @@ public class TextPart {
   public final String text;
   public final Label label;
 
-  public TextPart(TextPart parent, String text, float fontScale, Color color, FontManager fontManager,
+  /**
+   * Default constructor for {@link TextPart}.
+   *
+   * @param parent      Previous instance of {@link TextPart}.
+   * @param text        Part of text without formatting.
+   * @param fontScale   Scale of font, used to draw text.
+   * @param color       Color, used to draw text.
+   * @param fontManager Instance of {@link FontManager}, used to draw text.
+   * @param fontId      Identifier of font in previously specified fontManager, used to draw text.
+   * @param fontSize    Size of font, used to draw text.
+   */
+  public TextPart(TextPart parent, String text, float fontScale, Color color,
+      FontManager fontManager,
       int fontId, int fontSize) {
     this.parent = parent;
     this.fontScale = fontScale;

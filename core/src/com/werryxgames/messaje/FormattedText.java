@@ -15,15 +15,16 @@ import java.util.Stack;
  * @since 1.0
  */
 public class FormattedText {
+
   /**
    * Formats parent with text.
    *
-   * @param parent Table, that contains labels.
-   * @param text Markup language.
-   * @param color Color of text.
-   * @param fontManager Instance of {@link FontManager}.
-   * @param fontId Identifier of font.
-   * @param fontSize Size of font.
+   * @param parent        Table, that contains labels.
+   * @param text          Markup language.
+   * @param color         Color of text.
+   * @param fontManager   Instance of {@link FontManager}.
+   * @param fontId        Identifier of font.
+   * @param fontSize      Size of font.
    * @param maxWidthValue Maximum width, after which text will be wrapped.
    */
   public static void formatLabels(Table parent, String text, Color color,
@@ -143,21 +144,23 @@ public class FormattedText {
   /**
    * Formats text.
    *
-   * @param text Text to format.
-   * @param initialColor Default color, that will be used, until directly specified in text.
-   * @param fontManager Font manager to use.
-   * @param normalFontId Identifier of normal font in specified earlier fontManager.
-   * @param lightFontId Identifier of light font in specified earlier fontManager.
-   * @param italicFontId Identifier of italic font in specified earlier fontManager.
-   * @param boldFontId Identifier of bold font in specified earlier fontManager.
+   * @param text             Text to format.
+   * @param initialColor     Default color, that will be used, until directly specified in text.
+   * @param fontManager      Font manager to use.
+   * @param normalFontId     Identifier of normal font in specified earlier fontManager.
+   * @param lightFontId      Identifier of light font in specified earlier fontManager.
+   * @param italicFontId     Identifier of italic font in specified earlier fontManager.
+   * @param boldFontId       Identifier of bold font in specified earlier fontManager.
    * @param boldItalicFontId Identifier of bold italic font in specified earlier fontManager.
-   * @param monospaceFontId Identifier of monospace font in specified earlier fontManager.
-   * @param initialFontSize Default font size, that will be used, until directly specified in text.
+   * @param monospaceFontId  Identifier of monospace font in specified earlier fontManager.
+   * @param initialFontSize  Default font size, that will be used, until directly specified in
+   *                         text.
    * @return {@link ArrayList} of {@link TextPart}s.
    */
   public static ArrayList<TextPart> formatText(String text,
       Color initialColor, FontManager fontManager, int normalFontId, int lightFontId,
-      int italicFontId, int boldFontId, int boldItalicFontId, int monospaceFontId, int initialFontSize) {
+      int italicFontId, int boldFontId, int boldItalicFontId, int monospaceFontId,
+      int initialFontSize) {
     ArrayList<TextPart> textParts = new ArrayList<>(8);
     Stack<String> textFormatters = new Stack<>();
     String[] tokens = FormattedText.getTokens(text);

@@ -196,15 +196,32 @@ public class Client {
           return;
         }
 
-        ArrayList<Message> messages = new ArrayList<>(8);
+        ArrayList<Message> messages = new ArrayList<>(64);
+        ArrayList<User> users = new ArrayList<>(16);
+        ArrayList<Long> userIds = new ArrayList<>(16);
 
-        try (ResultSet sendedMessages = this.server.db.query(
+        try (ResultSet sentMessages = this.server.db.query(
             "SELECT * FROM privateMessages WHERE sender = ?", this.accountId)) {
-          while (sendedMessages.next()) {
-            long messageId = sendedMessages.getLong(1);
-            long senderId = sendedMessages.getLong(2);
-            long receiverId = sendedMessages.getLong(3);
-            InputStream textStream = sendedMessages.getBinaryStream(4);
+          while (sentMessages.next()) {
+            long messageId = sentMessages.getLong(1);
+            long senderId = sentMessages.getLong(2);
+            long receiverId = sentMessages.getLong(3);
+
+            if (!userIds.contains(receiverId)) {
+              String name = "<unnamed>";
+
+              try (ResultSet userName = this.server.db.query(
+                  "SELECT login FROM accounts WHERE id = ?", receiverId)) {
+                if (userName.next()) {
+                  name = userName.getString(1);
+                }
+              }
+
+              users.add(new User(receiverId, name));
+              userIds.add(receiverId);
+            }
+
+            InputStream textStream = sentMessages.getBinaryStream(4);
             //noinspection ObjectAllocationInLoop
             byte[] textBytes = new byte[textStream.available()];
 
@@ -216,11 +233,54 @@ public class Client {
             String text = new String(textBytes, StandardCharsets.UTF_8);
             //noinspection ObjectAllocationInLoop
             messages.add(new Message(messageId, receiverId, true, text));
+          }
+        } catch (SQLException | IOException e) {
+          this.server.logException(e);
+        }
+
+        try (ResultSet receivedMessages = this.server.db.query(
+            "SELECT * FROM privateMessages WHERE receiver = ?", this.accountId)) {
+          while (receivedMessages.next()) {
+            long messageId = receivedMessages.getLong(1);
+            long senderId = receivedMessages.getLong(2);
+
+            if (!userIds.contains(senderId)) {
+              String name = "<unnamed>";
+
+              try (ResultSet userName = this.server.db.query(
+                  "SELECT login FROM accounts WHERE id = ?", senderId)) {
+                if (userName.next()) {
+                  name = userName.getString(1);
+                }
+              }
+
+              users.add(new User(senderId, name));
+              userIds.add(senderId);
+            }
+            long receiverId = receivedMessages.getLong(3);
+            InputStream textStream = receivedMessages.getBinaryStream(4);
+            //noinspection ObjectAllocationInLoop
+            byte[] textBytes = new byte[textStream.available()];
+
+            if (textStream.read(textBytes) != textBytes.length) {
+              throw new IllegalArgumentException("read bytes != textBytes.length");
+            }
+
+            //noinspection ObjectAllocationInLoop
+            String text = new String(textBytes, StandardCharsets.UTF_8);
+            //noinspection ObjectAllocationInLoop
+            messages.add(new Message(messageId, receiverId, false, text));
             this.server.logger.fine(
                 "%d, %d, %d, %s".formatted(messageId, senderId, receiverId, text));
           }
         } catch (SQLException | IOException e) {
           this.server.logException(e);
+        }
+
+        int usersSize = 0;
+
+        for (User user : users) {
+          usersSize += user.byteSize();
         }
 
         int messagesSize = 0;
@@ -229,8 +289,14 @@ public class Client {
           messagesSize += message.byteSize();
         }
 
-        ByteBuffer sendBuffer = ByteBuffer.allocate(2 + 4 + messagesSize);
+        ByteBuffer sendBuffer = ByteBuffer.allocate(2 + 4 + usersSize + 4 + messagesSize);
         sendBuffer.putShort((short) 7);
+        sendBuffer.putInt(users.size());
+
+        for (User user : users) {
+          sendBuffer.put(user.toBytes());
+        }
+
         sendBuffer.putInt(messages.size());
 
         for (Message message : messages) {
