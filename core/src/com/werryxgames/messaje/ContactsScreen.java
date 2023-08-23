@@ -29,7 +29,10 @@ public class ContactsScreen extends DefaultScreen {
 
   public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
   ArrayList<FormattedMessage> formattedMessages = new ArrayList<>(64);
+  ArrayList<Message> allMessages;
+  ArrayList<User> users;
   Table messagesTable;
+  Table usersPaneContainer;
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -57,47 +60,18 @@ public class ContactsScreen extends DefaultScreen {
   public void init() {
     this.game.client.send(ByteBuffer.allocate(2).putShort((short) 2));
 
-    Table usersTable = new Table();
-    TextButtonStyle textButtonStyle = new TextButtonStyle();
-    textButtonStyle.font = this.game.fontManager.getFont(0, 24);
-    textButtonStyle.up = new BaseDrawable();
-    textButtonStyle.down = new BaseDrawable();
-    textButtonStyle.focused = new BaseDrawable();
-    textButtonStyle.disabled = new BaseDrawable();
-    textButtonStyle.over = new BaseDrawable();
-
-    for (int i = 0; i < 100; i++) {
-      TextButton button = new TextButton("User: " + i, textButtonStyle);
-      int finalI = i;
-      button.addListener(new ChangeListener() {
-        @Override
-        public void changed(ChangeEvent event, Actor actor) {
-          ContactsScreen.this.game.logger.fine("Selected user: " + finalI);
-        }
-      });
-      usersTable.add(button).width(300 - 18).height(40);
-      usersTable.row();
-    }
-
-    TextureRegionDrawable usersBackground = this.colorToDrawable(new Color(0x191919ff));
-    usersTable.setBackground(usersBackground);
-    usersTable.pack();
-    ScrollPane usersPane = new ScrollPane(usersTable, UiStyle.getScrollPaneStyle());
-    usersPane.setOverscroll(false, false);
-    usersPane.setFillParent(true);
-    Table table2 = new Table();
-    table2.left().add(usersPane);
-    table2.pack();
-    table2.setBackground(usersBackground);
-
     // TODO: Add scrollbar
     this.messagesTable = new Table();
     this.messagesTable.left().top();
     this.messagesTable.pack();
-    this.messagesTable.setDebug(true, true);
 
+    this.usersPaneContainer = new Table();
+    this.usersPaneContainer.pack();
+    TextureRegionDrawable usersBackground = this.colorToDrawable(new Color(0x191919ff));
+    this.usersPaneContainer.setBackground(usersBackground);
     Table table = new Table();
-    table.center().left().add(table2).width(300).height(Value.percentHeight(1f, table));
+    table.center().left().add(this.usersPaneContainer).width(300)
+        .height(Value.percentHeight(1f, table));
     table.add(this.messagesTable).expandX().height(Value.percentHeight(1f, table));
     table.pack();
     table.setFillParent(true);
@@ -129,7 +103,7 @@ public class ContactsScreen extends DefaultScreen {
   /**
    * Formats simplified non-standardized markup language to formatted text.
    *
-   * @param message Message to format.
+   * @param message       Message to format.
    * @param messagesTable Table of message to format.
    * @return Table with formatted labels.
    */
@@ -165,16 +139,37 @@ public class ContactsScreen extends DefaultScreen {
 
   protected void onMessageMain(int code, ByteBuffer serverMessage) {
     if (code == 7) {
-      int messagesCount = serverMessage.getInt();
-      Message[] messages = new Message[messagesCount + 1];
+      int usersCount = serverMessage.getInt();
+      this.users = new ArrayList<>(usersCount);
 
-      for (int i = 0; i < messagesCount; i++) {
-        messages[i] = new Message().fromBytes(serverMessage);
+      for (int i = 0; i < usersCount; i++) {
+        User user = new User().fromBytes(serverMessage);
+        this.users.add(user);
       }
 
-      messages[messagesCount] = new Message(999, 2, false, "Hello!");
+      int messagesCount = serverMessage.getInt();
+      this.allMessages = new ArrayList<>(messagesCount);
 
-      for (Message message : messages) {
+      for (int i = 0; i < messagesCount; i++) {
+        Message message = new Message().fromBytes(serverMessage);
+        boolean added = false;
+
+        for (int j = 0; j < this.allMessages.size(); j++) {
+          Message existingMessage = this.allMessages.get(j);
+
+          if (existingMessage.id > message.id) {
+            this.allMessages.add(j, message);
+            added = true;
+            break;
+          }
+        }
+
+        if (!added) {
+          this.allMessages.add(message);
+        }
+      }
+
+      for (Message message : this.allMessages) {
         Table table = new Table();
         table.center();
 
@@ -187,9 +182,57 @@ public class ContactsScreen extends DefaultScreen {
         this.formattedMessages.add(new FormattedMessage(message, table));
         this.game.logger.fine(String.format(Locale.ENGLISH,
             "Message. Id: %d, contact id: %d, sent by me: %s, text: '%s'", message.id,
-            message.contactId, message.sentByMe ? "true" : "else", message.text));
+            message.contactId, message.sentByMe ? "true" : "false", message.text));
       }
 
+      Table usersTable = new Table();
+      TextButtonStyle textButtonStyle = new TextButtonStyle();
+      textButtonStyle.font = this.game.fontManager.getFont(0, 24);
+      textButtonStyle.up = new BaseDrawable();
+      textButtonStyle.down = new BaseDrawable();
+      textButtonStyle.focused = new BaseDrawable();
+      textButtonStyle.disabled = new BaseDrawable();
+      textButtonStyle.over = new BaseDrawable();
+
+      for (int i = 0; i < usersCount; i++) {
+        User user = this.users.get(i);
+        TextButton button = new TextButton(user.name, textButtonStyle);
+        int finalI = i + 1;
+        button.addListener(new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            ContactsScreen.this.formattedMessages.clear();
+
+            for (Message message : ContactsScreen.this.allMessages) {
+              if (message.contactId != finalI) {
+                continue;
+              }
+
+              Table table = new Table();
+              table.center();
+
+              if (message.sentByMe) {
+                table.right();
+              } else {
+                table.left();
+              }
+
+              ContactsScreen.this.formattedMessages.add(new FormattedMessage(message, table));
+            }
+
+            ContactsScreen.this.reformatMessages(Gdx.graphics.getWidth());
+          }
+        });
+        usersTable.add(button).width(300 - 18).height(40);
+        usersTable.row();
+      }
+
+      usersTable.pack();
+      ScrollPane usersPane = new ScrollPane(usersTable, UiStyle.getScrollPaneStyle());
+      usersPane.setOverscroll(false, false);
+      usersPane.setFillParent(true);
+      Table table2 = new Table();
+      this.usersPaneContainer.left().add(usersPane).width(300);
       this.reformatMessages(Gdx.graphics.getWidth());
     }
   }
