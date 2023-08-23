@@ -222,15 +222,35 @@ public class Client {
             }
 
             InputStream textStream = sentMessages.getBinaryStream(4);
-            //noinspection ObjectAllocationInLoop
-            byte[] textBytes = new byte[textStream.available()];
+            int available = textStream.available();
+            String text;
 
-            if (textStream.read(textBytes) != textBytes.length) {
-              throw new IllegalArgumentException("read bytes != textBytes.length");
+            if (available > 0) {
+              //noinspection ObjectAllocationInLoop
+              byte[] textBytes = new byte[textStream.available()];
+              int attempt = 0;
+              int totalReadBytes = 0;
+
+              while (attempt < 16) {
+                totalReadBytes += textStream.read(textBytes, totalReadBytes,
+                    textBytes.length - totalReadBytes);
+                attempt++;
+
+                if (totalReadBytes >= textBytes.length) {
+                  break;
+                }
+              }
+
+              if (totalReadBytes != textBytes.length) {
+                throw new IllegalArgumentException("read bytes != textBytes.length");
+              }
+
+              //noinspection ObjectAllocationInLoop
+              text = new String(textBytes, StandardCharsets.UTF_8);
+            } else {
+              text = "";
             }
 
-            //noinspection ObjectAllocationInLoop
-            String text = new String(textBytes, StandardCharsets.UTF_8);
             //noinspection ObjectAllocationInLoop
             messages.add(new Message(messageId, receiverId, true, text));
           }
@@ -312,8 +332,11 @@ public class Client {
         buffer.get(messageBytes);
         String message = new String(messageBytes, StandardCharsets.UTF_8);
 
-        System.out.printf("User %d sent message to user %d: \"%s\"%n", this.accountId, contactId,
-            message);
+        if (this.server.db.update(
+            "INSERT INTO privateMessages (sender, receiver, text) VALUES (?, ?, ?)", this.accountId,
+            contactId, message) < 1) {
+          this.server.logger.warning("Message not delivered");
+        }
       }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server
       default -> this.server.logger.finer("Unexpected operation code from client: " + code);

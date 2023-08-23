@@ -53,12 +53,13 @@ public class FormattedText {
       textPart.label.getGlyphLayout().setText(textPart.label.getStyle().font, str1);
 
       while (constantWidth + textPart.label.getGlyphLayout().width > maxWidth) {
-        str2.insert(0, str1.charAt(str1.length() - 1));
-        str1 = str1.substring(0, str1.length() - 1);
-
         if (str1.length() == 0) {
           throw new RuntimeException("Screen width is too low to render 1 formatted character");
         }
+
+        str2.insert(0, str1.charAt(str1.length() - 1));
+
+        str1 = str1.substring(0, str1.length() - 1);
 
         textPart.label.getGlyphLayout().setText(textPart.label.getStyle().font, str1);
       }
@@ -98,7 +99,7 @@ public class FormattedText {
     char[] charArray = string.toCharArray();
 
     for (char c : charArray) {
-      if (c == '*' || c == '_' || c == '^' || c == '`') {
+      if (c == '*' || c == '_' || c == '^' || c == '`' || c == '|') {
         if (sameOperator == 0) {
           tokens.add(buffer.toString());
           buffer = new StringBuilder(String.valueOf(c));

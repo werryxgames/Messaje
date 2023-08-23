@@ -30,12 +30,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ContactsScreen extends DefaultScreen {
 
   public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
+  public int currentUser = 0;
   ArrayList<FormattedMessage> formattedMessages = new ArrayList<>(64);
   ArrayList<Message> allMessages;
   ArrayList<User> users;
   Table messagesTable;
   Table usersPaneContainer;
-  public int currentUser = 0;
+  Table sendMessageTable;
+  TextField messageArea;
+  ScrollPane messagesPane;
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -63,10 +66,18 @@ public class ContactsScreen extends DefaultScreen {
   public void init() {
     this.game.client.send(ByteBuffer.allocate(2).putShort((short) 2));
 
-    // TODO: Add scrollbar
     this.messagesTable = new Table();
     this.messagesTable.left().top();
     this.messagesTable.pack();
+
+    this.messagesPane = new ScrollPane(this.messagesTable);
+    messagesPane.setOverscroll(false, false);
+    messagesPane.setScrollingDisabled(true, false);
+    messagesPane.setFillParent(true);
+
+    Table msgTable = new Table();
+    msgTable.add(messagesPane).left().top().fillX();
+    msgTable.pack();
 
     this.usersPaneContainer = new Table();
     this.usersPaneContainer.pack();
@@ -75,11 +86,49 @@ public class ContactsScreen extends DefaultScreen {
     Table table = new Table();
     table.center().left().add(this.usersPaneContainer).width(300)
         .height(Value.percentHeight(1f, table));
-    table.add(this.messagesTable).expandX().height(Value.percentHeight(1f, table));
+    table.add(msgTable).fillX().height(Value.percentHeight(1f, table));
     table.pack();
     table.setFillParent(true);
     table.setBackground(this.colorToDrawable(new Color(0x121212ff)));
     this.game.stage.addActor(table);
+
+    this.sendMessageTable = new Table();
+    this.messageArea = new TextField("",
+        UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24));
+    sendMessageTable.left().add(messageArea).expandX().fillX();
+    TextButton sendMessageButton = new TextButton("Send",
+        UiStyle.getTextButtonStyle(this.game.fontManager, 0, 24));
+    sendMessageButton.addListener(new ChangeListener() {
+      @Override
+      public void changed(ChangeEvent event, Actor actor) {
+        String text = messageArea.getText();
+        byte[] messageBytes = text.getBytes(StandardCharsets.UTF_8);
+        ByteBuffer buffer = ByteBuffer.allocate(2 + 8 + 2 + messageBytes.length);
+        buffer.putShort((short) 3);
+        buffer.putLong(ContactsScreen.this.currentUser);
+        buffer.putShort((short) messageBytes.length);
+        buffer.put(messageBytes);
+        ContactsScreen.this.game.client.send(buffer);
+        messageArea.setText("");
+
+        Table table = new Table();
+        table.center().right();
+        ContactsScreen.this.formattedMessages.add(
+            new FormattedMessage(new Message(0, ContactsScreen.this.currentUser, true, text),
+                table));
+        ContactsScreen.this.reformatMessages();
+      }
+    });
+
+    final int width = Gdx.graphics.getWidth();
+
+    sendMessageTable.add(sendMessageButton).padLeft(4);
+    sendMessageTable.pack();
+    sendMessageTable.setPosition(308, 8);
+    sendMessageTable.setWidth(width - 316);
+    sendMessageTable.setHeight(40);
+    this.messageArea.setWidth(width - 362);
+    this.game.stage.addActor(sendMessageTable);
   }
 
   /**
@@ -104,33 +153,9 @@ public class ContactsScreen extends DefaultScreen {
       messagesContainer.row();
     }
 
-    this.messagesTable.add(messagesContainer).height(height - 56);
-
-    Table sendMessageTable = new Table();
-    TextField messageArea = new TextField("",
-        UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24));
-    sendMessageTable.add(messageArea).width(width - 380);
-    TextButton sendMessageButton = new TextButton("Send",
-        UiStyle.getTextButtonStyle(this.game.fontManager, 0, 24));
-    sendMessageButton.addListener(new ChangeListener() {
-      @Override
-      public void changed(ChangeEvent event, Actor actor) {
-        System.out.println("Sending message...");
-        byte[] messageBytes = messageArea.getText().getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buffer = ByteBuffer.allocate(2 + 8 + 2 + messageBytes.length);
-        buffer.putShort((short) 3);
-        buffer.putLong(ContactsScreen.this.currentUser);
-        buffer.putShort((short) messageBytes.length);
-        buffer.put(messageBytes);
-        ContactsScreen.this.game.client.send(buffer);
-        messageArea.setText("");
-      }
-    });
-    sendMessageTable.add(sendMessageButton).padLeft(4);
-    sendMessageTable.pack();
-    this.messagesTable.row();
-    this.messagesTable.add(sendMessageTable).width(width - 316).height(40).padLeft(8).padRight(8)
-        .padTop(8).padBottom(8);
+    this.messagesTable.add(messagesContainer).padBottom(56);
+    this.messageArea.setWidth(width - 388);
+    this.sendMessageTable.setWidth(width - 316);
   }
 
   public void reformatMessages() {
@@ -153,7 +178,7 @@ public class ContactsScreen extends DefaultScreen {
     int width = Gdx.graphics.getWidth();
 
     FormattedText.formatLabels(table, message.text, Color.WHITE, this.game.fontManager, 0, 24,
-        new Fixed(width - 396));
+        new Fixed(width - 396 - 18));
     table.pack();
 
     if (message.sentByMe) {
@@ -164,7 +189,7 @@ public class ContactsScreen extends DefaultScreen {
           Gdx.files.internal("icons" + File.separator + "received_message.png")), 19, 15, 20, 19)));
     }
 
-    containerTable.add(table).maxWidth(width - 346);
+    containerTable.add(table).maxWidth(width - 346 - 18);
     containerTable.pack();
     return containerTable;
   }
@@ -271,7 +296,6 @@ public class ContactsScreen extends DefaultScreen {
       usersPane.setFillParent(true);
       Table table2 = new Table();
       this.usersPaneContainer.left().add(usersPane).width(300);
-      this.reformatMessages();
     }
   }
 
