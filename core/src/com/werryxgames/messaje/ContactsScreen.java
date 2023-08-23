@@ -31,6 +31,7 @@ public class ContactsScreen extends DefaultScreen {
 
   public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
   public int currentUser = 0;
+  public boolean changedUser = false;
   ArrayList<FormattedMessage> formattedMessages = new ArrayList<>(64);
   ArrayList<Message> allMessages;
   ArrayList<User> users;
@@ -101,6 +102,10 @@ public class ContactsScreen extends DefaultScreen {
     sendMessageButton.addListener(new ChangeListener() {
       @Override
       public void changed(ChangeEvent event, Actor actor) {
+        if (!ContactsScreen.this.changedUser) {
+          return;
+        }
+
         String text = messageArea.getText();
         byte[] messageBytes = text.getBytes(StandardCharsets.UTF_8);
         ByteBuffer buffer = ByteBuffer.allocate(2 + 8 + 2 + messageBytes.length);
@@ -284,6 +289,7 @@ public class ContactsScreen extends DefaultScreen {
 
             ContactsScreen.this.reformatMessages();
             ContactsScreen.this.currentUser = finalI;
+            ContactsScreen.this.changedUser = true;
           }
         });
         usersTable.add(button).width(300 - 18).height(40);
