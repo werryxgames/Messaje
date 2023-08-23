@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.ui.Value.Fixed;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
@@ -53,7 +54,7 @@ public class ContactsScreen extends DefaultScreen {
 
   @Override
   void onResize(int width, int height) {
-    this.reformatMessages(width);
+    this.reformatMessages(width, height);
   }
 
   @Override
@@ -85,31 +86,59 @@ public class ContactsScreen extends DefaultScreen {
    *
    * @param width Current width of window.
    */
-  public void reformatMessages(int width) {
+  public void reformatMessages(int width, int height) {
     if (this.messagesTable == null) {
       return;
     }
 
     this.messagesTable.clear();
+    Table messagesContainer = new Table();
+    messagesContainer.left().top();
 
     for (FormattedMessage formattedMessage : this.formattedMessages) {
       this.reformatMessage(formattedMessage.message, formattedMessage.table);
-      this.messagesTable.add(formattedMessage.table).width(width - 312).padLeft(5).padRight(5)
+      messagesContainer.add(formattedMessage.table).width(width - 312).padLeft(5).padRight(5)
           .padTop(5).padBottom(5);
-      this.messagesTable.row();
+      messagesContainer.row();
     }
+
+    this.messagesTable.add(messagesContainer).height(height - 56);
+
+    Table sendMessageTable = new Table();
+    TextField messageArea = new TextField("",
+        UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24));
+    sendMessageTable.add(messageArea).width(width - 380);
+    TextButton sendMessageButton = new TextButton("Send",
+        UiStyle.getTextButtonStyle(this.game.fontManager, 0, 24));
+    sendMessageButton.addListener(new ChangeListener() {
+      @Override
+      public void changed(ChangeEvent event, Actor actor) {
+        System.out.println("Sending message...");
+        // TODO: Send message
+        messageArea.setText("");
+      }
+    });
+    sendMessageTable.add(sendMessageButton).padLeft(4);
+    sendMessageTable.pack();
+    this.messagesTable.row();
+    this.messagesTable.add(sendMessageTable).width(width - 316).height(40).padLeft(8).padRight(8)
+        .padTop(8).padBottom(8);
+  }
+
+  public void reformatMessages() {
+    this.reformatMessages(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
   }
 
   /**
    * Formats simplified non-standardized markup language to formatted text.
    *
-   * @param message       Message to format.
-   * @param messagesTable Table of message to format.
+   * @param message      Message to format.
+   * @param messageTable Table of message to format.
    * @return Table with formatted labels.
    */
-  public Table reformatMessage(Message message, Table messagesTable) {
+  public Table reformatMessage(Message message, Table messageTable) {
     Table containerTable;
-    containerTable = messagesTable;
+    containerTable = messageTable;
     containerTable.clear();
 
     Table table = new Table();
@@ -220,7 +249,7 @@ public class ContactsScreen extends DefaultScreen {
               ContactsScreen.this.formattedMessages.add(new FormattedMessage(message, table));
             }
 
-            ContactsScreen.this.reformatMessages(Gdx.graphics.getWidth());
+            ContactsScreen.this.reformatMessages();
           }
         });
         usersTable.add(button).width(300 - 18).height(40);
@@ -233,7 +262,7 @@ public class ContactsScreen extends DefaultScreen {
       usersPane.setFillParent(true);
       Table table2 = new Table();
       this.usersPaneContainer.left().add(usersPane).width(300);
-      this.reformatMessages(Gdx.graphics.getWidth());
+      this.reformatMessages();
     }
   }
 
