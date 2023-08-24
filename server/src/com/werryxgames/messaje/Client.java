@@ -10,11 +10,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -96,6 +99,21 @@ public class Client {
 
         byte[] passwordHash = new byte[32];
         buffer.get(passwordHash);
+        byte[] salt = new byte[8];
+        // Salt should be unique, not cryptographically secure
+        //noinspection UnsecureRandomNumberGeneration
+        new Random().nextBytes(salt);
+        byte[] saltedPassword;
+
+        try {
+          saltedPassword = MessageDigest.getInstance("SHA3-256").digest(
+              ByteBuffer.allocate(passwordHash.length + salt.length).put(passwordHash).put(salt)
+                  .array());
+        } catch (NoSuchAlgorithmException e) {
+          this.send(ByteBuffer.allocate(2).putShort((short) 1));
+          this.server.logException(e);
+          return;
+        }
 
         try (ResultSet userWithSameLogin = this.server.db.query(
             "SELECT 1 FROM accounts WHERE login = ?", login)) {
@@ -123,8 +141,8 @@ public class Client {
         if (this.server.db.update(
             "INSERT INTO accounts (login, passwordHash, passwordSalt) VALUES (?, ?, ?)",
             login,
-            passwordHash,
-            "No salt."
+            saltedPassword,
+            salt
         ) < 1) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 1);
@@ -166,12 +184,28 @@ public class Client {
           return;
         }
 
-        byte[] passwordHash = new byte[32];
-        buffer.get(passwordHash);
         try (ResultSet specifiedUser = this.server.db.query(
-            "SELECT 1 FROM accounts WHERE login = ? AND passwordHash = ? AND passwordSalt = ?",
-            login, passwordHash, "No salt.")) {
+            "SELECT id, passwordHash, passwordSalt FROM accounts WHERE login = ?",
+            login)) {
           if (!specifiedUser.next()) {
+            ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+            sendBuffer.putShort((short) 5);
+            this.send(sendBuffer);
+            return;
+          }
+
+          byte[] passwordHash = new byte[32];
+
+          buffer.get(passwordHash);
+          byte[] correctHash = specifiedUser.getBytes(2);
+          byte[] passwordSalt = specifiedUser.getBytes(3);
+          byte[] computedHash = MessageDigest.getInstance("SHA3-256").digest(
+              ByteBuffer.allocate(passwordHash.length + passwordSalt.length).put(passwordHash)
+                  .put(passwordSalt)
+                  .array());
+
+          if (!Arrays.equals(computedHash, correctHash)) {
+            this.server.logger.fine("Incorrect password");
             ByteBuffer sendBuffer = ByteBuffer.allocate(2);
             sendBuffer.putShort((short) 5);
             this.send(sendBuffer);
@@ -183,7 +217,7 @@ public class Client {
           this.send(sendBuffer);
           this.accountId = specifiedUser.getLong(1);
           this.server.logger.fine("Logged in user with id " + this.accountId);
-        } catch (SQLException e) {
+        } catch (SQLException | NoSuchAlgorithmException e) {
           this.server.logException(e);
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 1);

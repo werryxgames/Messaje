@@ -205,6 +205,9 @@ public class ContactsScreen extends DefaultScreen {
     return containerTable;
   }
 
+  /**
+   * Updates users panel.
+   */
   public void updateUsers() {
     TextButtonStyle textButtonStyle = new TextButtonStyle();
     textButtonStyle.font = this.game.fontManager.getFont(0, 24);

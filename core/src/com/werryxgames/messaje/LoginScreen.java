@@ -22,6 +22,9 @@ import java.security.NoSuchAlgorithmException;
  * @since 1.0
  */
 public class LoginScreen extends DefaultScreen {
+
+  static final byte[] PEPPER = Utils.hexToBytes(Config.get("password.pepper", "69D029BE4D8E0C42"));
+
   /**
    * Default constructor for {@code DefaultScreen}.
    *
@@ -80,23 +83,25 @@ public class LoginScreen extends DefaultScreen {
       public void changed(ChangeEvent event, Actor actor) {
         LoginScreen.this.game.logger.fine("Register button pressed");
 
-        // TODO: Add salt and pepper.
         byte[] hashedPassword;
+        byte[] textPasswordBytes = passwordField.getText().getBytes(StandardCharsets.UTF_8);
+        byte[] loginBytes = loginField.getText().getBytes(StandardCharsets.UTF_8);
+        byte[] passwordBytes = ByteBuffer.allocate(
+                textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
+            .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
 
         try {
-          hashedPassword = MessageDigest.getInstance("SHA3-256")
-              .digest(passwordField.getText().getBytes(StandardCharsets.UTF_8));
+          hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
         } catch (NoSuchAlgorithmException e) {
           LoginScreen.this.game.logException(e);
           return;
         }
 
-        byte[] login = loginField.getText().getBytes(StandardCharsets.UTF_8);
-        int loginLength = login.length;
+        int loginLength = loginBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(2 + 1 + loginLength + hashedPassword.length);
         buffer.putShort((short) 0);
         buffer.put((byte) loginLength);
-        buffer.put(login);
+        buffer.put(loginBytes);
         buffer.put(hashedPassword);
         LoginScreen.this.game.client.send(buffer);
       }
@@ -110,22 +115,26 @@ public class LoginScreen extends DefaultScreen {
       @Override
       public void changed(ChangeEvent event, Actor actor) {
         LoginScreen.this.game.logger.fine("Log in button pressed");
+
         byte[] hashedPassword;
+        byte[] textPasswordBytes = passwordField.getText().getBytes(StandardCharsets.UTF_8);
+        byte[] loginBytes = loginField.getText().getBytes(StandardCharsets.UTF_8);
+        byte[] passwordBytes = ByteBuffer.allocate(
+                textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
+            .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
 
         try {
-          hashedPassword = MessageDigest.getInstance("SHA3-256")
-              .digest(passwordField.getText().getBytes(StandardCharsets.UTF_8));
+          hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
         } catch (NoSuchAlgorithmException e) {
           LoginScreen.this.game.logException(e);
           return;
         }
 
-        byte[] login = loginField.getText().getBytes(StandardCharsets.UTF_8);
-        int loginLength = login.length;
+        int loginLength = loginBytes.length;
         ByteBuffer buffer = ByteBuffer.allocate(2 + 1 + loginLength + hashedPassword.length);
         buffer.putShort((short) 1);
         buffer.put((byte) loginLength);
-        buffer.put(login);
+        buffer.put(loginBytes);
         buffer.put(hashedPassword);
         LoginScreen.this.game.client.send(buffer);
       }

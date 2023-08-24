@@ -129,15 +129,7 @@ public class Aes {
    * @return AES key.
    */
   public static SecretKey getKey(String keyHex) {
-    int length = keyHex.length();
-    byte[] keyBytes = new byte[length / 2];
-
-    for (int i = 0; i < length; i += 2) {
-      keyBytes[i / 2] = (byte) ((Character.digit(keyHex.charAt(i), 16) << 4) + Character.digit(
-          keyHex.charAt(i + 1), 16));
-    }
-
-    return Aes.getKey(keyBytes);
+    return Aes.getKey(Utils.hexToBytes(keyHex));
   }
 
   /**
@@ -173,6 +165,10 @@ public class Aes {
     return true;
   }
 
+  public static void generateBytes(byte[] arr) {
+    new SecureRandom().nextBytes(arr);
+  }
+
   /**
    * Generates 16 bytes of Initialization Vector (IV).
    *
@@ -180,7 +176,7 @@ public class Aes {
    */
   public static IvParameterSpec generateIv() {
     byte[] iv = new byte[Aes.IV_SIZE];
-    new SecureRandom().nextBytes(iv);
+    Aes.generateBytes(iv);
     return new IvParameterSpec(iv);
   }
 
