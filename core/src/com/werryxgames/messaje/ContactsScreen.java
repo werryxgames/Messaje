@@ -4,6 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -11,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.ui.Value.Fixed;
+import com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
@@ -30,7 +33,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ContactsScreen extends DefaultScreen {
 
   public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
-  public int currentUser = 0;
+  public long currentUser = 0;
   public boolean changedUser = false;
   ArrayList<FormattedMessage> formattedMessages = new ArrayList<>(64);
   ArrayList<Message> allMessages;
@@ -40,6 +43,9 @@ public class ContactsScreen extends DefaultScreen {
   Table sendMessageTable;
   TextField messageArea;
   ScrollPane messagesPane;
+  Table usersTable;
+  Runnable unblockFunction;
+  String addLogin;
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -199,6 +205,109 @@ public class ContactsScreen extends DefaultScreen {
     return containerTable;
   }
 
+  public void updateUsers() {
+    TextButtonStyle textButtonStyle = new TextButtonStyle();
+    textButtonStyle.font = this.game.fontManager.getFont(0, 24);
+    textButtonStyle.up = new BaseDrawable();
+    textButtonStyle.down = new BaseDrawable();
+    textButtonStyle.focused = new BaseDrawable();
+    textButtonStyle.disabled = new BaseDrawable();
+    textButtonStyle.over = new BaseDrawable();
+
+    this.usersTable.clear();
+    int usersCount = this.users.size();
+
+    for (int i = 0; i < usersCount; i++) {
+      User user = this.users.get(i);
+      TextButton button = new TextButton(user.name, textButtonStyle);
+      long contactId = user.id;
+      button.addListener(new ChangeListener() {
+        @Override
+        public void changed(ChangeEvent event, Actor actor) {
+          ContactsScreen.this.formattedMessages.clear();
+
+          for (Message message : ContactsScreen.this.allMessages) {
+            if (message.contactId != contactId) {
+              continue;
+            }
+
+            Table table = new Table();
+            table.center();
+
+            if (message.sentByMe) {
+              table.right();
+            } else {
+              table.left();
+            }
+
+            ContactsScreen.this.formattedMessages.add(new FormattedMessage(message, table));
+          }
+
+          ContactsScreen.this.reformatMessages();
+          ContactsScreen.this.currentUser = contactId;
+          ContactsScreen.this.changedUser = true;
+        }
+      });
+      usersTable.add(button).width(300 - 18).height(40);
+      usersTable.row();
+    }
+
+    TextButton button = new TextButton("<Add new>", textButtonStyle);
+    button.addListener(new ChangeListener() {
+      @Override
+      public void changed(ChangeEvent event, Actor actor) {
+        WindowStyle windowStyle = new WindowStyle(
+            ContactsScreen.this.game.fontManager.getFont(0, 32), new Color(0xdededeff),
+            ContactsScreen.this.colorToDrawable(new Color(0x00000080)));
+        Dialog dialog = new Dialog("", windowStyle);
+        dialog.clear();
+        dialog.setFillParent(true);
+        dialog.add(new Label("Add new contact by login",
+                UiStyle.getLabelStyle(ContactsScreen.this.game.fontManager, 0, 32))).colspan(2)
+            .padBottom(8);
+        dialog.row();
+        dialog.add(new Label("Login:",
+            UiStyle.getLabelStyle(ContactsScreen.this.game.fontManager, 0, 24)));
+        TextField loginField = new TextField("",
+            UiStyle.getTextFieldStyle(ContactsScreen.this.game.fontManager, 0, 24));
+        dialog.add(loginField).fillX();
+        dialog.row();
+        Table buttonsTable = new Table();
+        TextButton closeButton = new TextButton("Close",
+            UiStyle.getTextButtonStyle(ContactsScreen.this.game.fontManager, 0, 24));
+        closeButton.addListener(new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            dialog.hide();
+          }
+        });
+        buttonsTable.add(closeButton).fillX().padRight(6).width(200);
+        TextButton addContactButton = new TextButton("Add",
+            UiStyle.getTextButtonStyle(ContactsScreen.this.game.fontManager, 0, 24));
+        addContactButton.addListener(new ChangeListener() {
+          @Override
+          public void changed(ChangeEvent event, Actor actor) {
+            ContactsScreen.this.unblockFunction = dialog::hide;
+
+            closeButton.setDisabled(true);
+            addContactButton.setDisabled(true);
+            String addLogin = loginField.getText();
+            byte[] loginBytes = addLogin.getBytes(StandardCharsets.UTF_8);
+            ContactsScreen.this.addLogin = addLogin;
+            ContactsScreen.this.game.client.sendBlocking(
+                ByteBuffer.allocate(2 + 1 + loginBytes.length).putShort((short) 4)
+                    .put((byte) loginBytes.length).put(loginBytes));
+          }
+        });
+        buttonsTable.add(addContactButton).fillX().padLeft(6).width(200);
+        dialog.add(buttonsTable).colspan(2).padTop(8);
+        dialog.show(ContactsScreen.this.game.stage);
+      }
+    });
+
+    usersTable.add(button).width(300 - 18).height(40);
+  }
+
   @Override
   public void onMessage(int code, ByteBuffer serverMessage) {
     this.networkHandlerQueue.add(() -> this.onMessageMain(code, serverMessage));
@@ -252,49 +361,8 @@ public class ContactsScreen extends DefaultScreen {
             message.contactId, message.sentByMe ? "true" : "false", message.text));
       }
 
-      Table usersTable = new Table();
-      TextButtonStyle textButtonStyle = new TextButtonStyle();
-      textButtonStyle.font = this.game.fontManager.getFont(0, 24);
-      textButtonStyle.up = new BaseDrawable();
-      textButtonStyle.down = new BaseDrawable();
-      textButtonStyle.focused = new BaseDrawable();
-      textButtonStyle.disabled = new BaseDrawable();
-      textButtonStyle.over = new BaseDrawable();
-
-      for (int i = 0; i < usersCount; i++) {
-        User user = this.users.get(i);
-        TextButton button = new TextButton(user.name, textButtonStyle);
-        int finalI = i + 1;
-        button.addListener(new ChangeListener() {
-          @Override
-          public void changed(ChangeEvent event, Actor actor) {
-            ContactsScreen.this.formattedMessages.clear();
-
-            for (Message message : ContactsScreen.this.allMessages) {
-              if (message.contactId != finalI) {
-                continue;
-              }
-
-              Table table = new Table();
-              table.center();
-
-              if (message.sentByMe) {
-                table.right();
-              } else {
-                table.left();
-              }
-
-              ContactsScreen.this.formattedMessages.add(new FormattedMessage(message, table));
-            }
-
-            ContactsScreen.this.reformatMessages();
-            ContactsScreen.this.currentUser = finalI;
-            ContactsScreen.this.changedUser = true;
-          }
-        });
-        usersTable.add(button).width(300 - 18).height(40);
-        usersTable.row();
-      }
+      this.usersTable = new Table();
+      this.updateUsers();
 
       usersTable.pack();
       ScrollPane usersPane = new ScrollPane(usersTable, UiStyle.getScrollPaneStyle());
@@ -302,6 +370,26 @@ public class ContactsScreen extends DefaultScreen {
       usersPane.setFillParent(true);
       Table table2 = new Table();
       this.usersPaneContainer.left().add(usersPane).width(300);
+    } else if (code == 8) {
+      long userId = serverMessage.getLong();
+
+      for (User user : this.users) {
+        if (user.id == userId) {
+          this.unblockFunction.run();
+          this.game.logger.warning("User already added");
+          return;
+        }
+      }
+
+      this.users.add(new User(userId, this.addLogin));
+      this.updateUsers();
+      this.currentUser = userId;
+      // TODO: Fix messages not showing if there are too few messages
+      this.unblockFunction.run();
+    } else if (code == 9) {
+      // TODO: Add dialogs on errors/warnings
+      this.game.logger.warning("User not found");
+      this.unblockFunction.run();
     }
   }
 

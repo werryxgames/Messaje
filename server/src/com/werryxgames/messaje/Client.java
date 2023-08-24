@@ -338,6 +338,23 @@ public class Client {
           this.server.logger.warning("Message not delivered");
         }
       }
+      case 4 -> {
+        byte loginLength = buffer.get();
+        byte[] loginBytes = new byte[loginLength];
+        buffer.get(loginBytes);
+        String login = new String(loginBytes, StandardCharsets.UTF_8);
+
+        try (ResultSet result = this.server.db.query("SELECT id FROM accounts WHERE login = ?",
+            login)) {
+          if (result.next()) {
+            this.send(ByteBuffer.allocate(2 + 8).putShort((short) 8).putLong(result.getLong(1)));
+          } else {
+            this.send(ByteBuffer.allocate(2).putShort((short) 9));
+          }
+        } catch (SQLException e) {
+          this.server.logException(e);
+        }
+      }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server
       default -> this.server.logger.finer("Unexpected operation code from client: " + code);
     }
