@@ -382,7 +382,8 @@ public class Client {
         for (Client client : this.server.clients) {
           if (client.accountId == contactId) {
             try (ResultSet messageSet = this.server.db.query(
-                "SELECT id FROM privateMessages WHERE sender = ? AND receiver = ? AND text = ? ORDER BY id DESC LIMIT 1",
+                "SELECT id FROM privateMessages WHERE sender = ? AND receiver = ? AND text = "
+                    + "? ORDER BY id DESC LIMIT 1",
                 this.accountId, contactId, message)) {
               if (!messageSet.next()) {
                 break;
