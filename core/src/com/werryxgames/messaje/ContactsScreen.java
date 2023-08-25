@@ -384,7 +384,6 @@ public class ContactsScreen extends DefaultScreen {
       this.users.add(new User(userId, this.addLogin));
       this.updateUsers();
       this.currentUser = userId;
-      // TODO: Fix messages not showing if there are too few messages
       this.unblockFunction.run();
     } else if (code == 9) {
       this.game.logger.warning("User not found");
