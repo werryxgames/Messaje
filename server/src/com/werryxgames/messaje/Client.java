@@ -312,6 +312,7 @@ public class Client {
               users.add(new User(senderId, name));
               userIds.add(senderId);
             }
+
             long receiverId = receivedMessages.getLong(3);
             InputStream textStream = receivedMessages.getBinaryStream(4);
             //noinspection ObjectAllocationInLoop
@@ -324,7 +325,7 @@ public class Client {
             //noinspection ObjectAllocationInLoop
             String text = new String(textBytes, StandardCharsets.UTF_8);
             //noinspection ObjectAllocationInLoop
-            messages.add(new Message(messageId, receiverId, false, text));
+            messages.add(new Message(messageId, senderId, false, text));
             this.server.logger.fine(
                 "%d, %d, %d, %s".formatted(messageId, senderId, receiverId, text));
           }
@@ -361,6 +362,11 @@ public class Client {
         this.send(sendBuffer);
       }
       case 3 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
         long contactId = buffer.getLong();
         short messageLength = buffer.getShort();
         byte[] messageBytes = new byte[messageLength];
@@ -372,8 +378,34 @@ public class Client {
             contactId, message) < 1) {
           this.server.logger.warning("Message not delivered");
         }
+
+        for (Client client : this.server.clients) {
+          if (client.accountId == contactId) {
+            try (ResultSet messageSet = this.server.db.query(
+                "SELECT id FROM privateMessages WHERE sender = ? AND receiver = ? AND text = ? ORDER BY id DESC LIMIT 1",
+                this.accountId, contactId, message)) {
+              if (!messageSet.next()) {
+                break;
+              }
+
+              long messageId = messageSet.getLong(1);
+              Message sentMessage = new Message(messageId, this.accountId, false, message);
+              client.send(ByteBuffer.allocate(2 + sentMessage.byteSize()).putShort((short) 10)
+                  .put(sentMessage.toBytes()));
+            } catch (SQLException e) {
+              break;
+            }
+
+            break;
+          }
+        }
       }
       case 4 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
         byte loginLength = buffer.get();
         byte[] loginBytes = new byte[loginLength];
         buffer.get(loginBytes);

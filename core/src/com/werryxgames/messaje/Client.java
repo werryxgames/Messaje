@@ -73,7 +73,6 @@ public class Client {
   protected void reconnectLoop() {
     while (!(this.closing || this.isConnected())) {
       this.reconnectBlocking();
-      System.out.println("RECONNECT LOOP");
     }
   }
 

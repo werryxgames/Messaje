@@ -390,6 +390,16 @@ public class ContactsScreen extends DefaultScreen {
       this.game.logger.warning("User not found");
       this.warning("User not added", "User with specified login isn't found");
       this.unblockFunction.run();
+    } else if (code == 10) {
+      Message message = new Message().fromBytes(serverMessage);
+      allMessages.add(message);
+
+      if (this.currentUser == message.contactId) {
+        Table table = new Table();
+        table.center().left();
+        ContactsScreen.this.formattedMessages.add(new FormattedMessage(message, table));
+        ContactsScreen.this.reformatMessages();
+      }
     }
   }
 
