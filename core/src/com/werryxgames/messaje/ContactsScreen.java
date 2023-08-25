@@ -13,7 +13,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.ui.Value;
 import com.badlogic.gdx.scenes.scene2d.ui.Value.Fixed;
-import com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
@@ -259,10 +258,9 @@ public class ContactsScreen extends DefaultScreen {
     button.addListener(new ChangeListener() {
       @Override
       public void changed(ChangeEvent event, Actor actor) {
-        WindowStyle windowStyle = new WindowStyle(
-            ContactsScreen.this.game.fontManager.getFont(0, 32), new Color(0xdededeff),
-            ContactsScreen.this.colorToDrawable(new Color(0x00000080)));
-        Dialog dialog = new Dialog("", windowStyle);
+        Dialog dialog = new Dialog("",
+            UiStyle.getWindowStyle(ContactsScreen.this.game.fontManager, 0, 32,
+                ContactsScreen.this.colorToDrawable(new Color(0x00000080))));
         dialog.clear();
         dialog.setFillParent(true);
         dialog.add(new Label("Add new contact by login",
@@ -380,6 +378,8 @@ public class ContactsScreen extends DefaultScreen {
         if (user.id == userId) {
           this.unblockFunction.run();
           this.game.logger.warning("User already added");
+          this.warning("User not added",
+              "User already added to contacts list, so it's not added again");
           return;
         }
       }
@@ -390,8 +390,8 @@ public class ContactsScreen extends DefaultScreen {
       // TODO: Fix messages not showing if there are too few messages
       this.unblockFunction.run();
     } else if (code == 9) {
-      // TODO: Add dialogs on errors/warnings
       this.game.logger.warning("User not found");
+      this.warning("User not added", "User with specified login isn't found");
       this.unblockFunction.run();
     }
   }

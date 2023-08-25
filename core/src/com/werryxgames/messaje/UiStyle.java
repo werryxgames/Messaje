@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane.ScrollPaneStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
+import com.badlogic.gdx.scenes.scene2d.ui.Window.WindowStyle;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import java.io.File;
@@ -17,37 +19,33 @@ import java.io.File;
  * @since 1.0
  */
 public class UiStyle {
+
   /**
-   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextField}.
-   * Not for use.
+   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextField}. Not for use.
    *
    * @since 1.0
    */
   public static final TextFieldStyle textFieldStyle = new TextFieldStyle();
   /**
-   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.Label}.
-   * Not for use.
+   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.Label}. Not for use.
    *
    * @since 1.0
    */
   public static final LabelStyle labelStyle = new LabelStyle();
   /**
-   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextButton}.
-   * Not for use.
+   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextButton}. Not for use.
    *
    * @since 1.0
    */
   public static final TextButtonStyle textButtonStyle = new TextButtonStyle();
   /**
-   * Disabled style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextButton}.
-   * Not for use.
+   * Disabled style for {@link com.badlogic.gdx.scenes.scene2d.ui.TextButton}. Not for use.
    *
    * @since 1.0
    */
   public static final TextButtonStyle textButtonStyleDisabled = new TextButtonStyle();
   /**
-   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.ScrollPane}.
-   * Not for use.
+   * Default style for {@link com.badlogic.gdx.scenes.scene2d.ui.ScrollPane}. Not for use.
    *
    * @since 1.0
    */
@@ -190,7 +188,7 @@ public class UiStyle {
    * @since 1.0
    */
   public static TextFieldStyle getTextFieldStyle(FontManager fontManager, int fontType,
-                                                 int fontSize) {
+      int fontSize) {
     TextFieldStyle style = new TextFieldStyle(textFieldStyle);
     style.font = fontManager.getFont(fontType, fontSize);
     return style;
@@ -219,7 +217,7 @@ public class UiStyle {
    * @since 1.0
    */
   public static TextButtonStyle getTextButtonStyle(FontManager fontManager, int fontType,
-                                                   int fontSize) {
+      int fontSize) {
     TextButtonStyle style = new TextButtonStyle(textButtonStyle);
     style.font = fontManager.getFont(fontType, fontSize);
     return style;
@@ -234,7 +232,7 @@ public class UiStyle {
    * @since 1.0
    */
   public static TextButtonStyle getTextButtonStyleDisabled(FontManager fontManager, int fontType,
-                                                           int fontSize) {
+      int fontSize) {
     TextButtonStyle style = new TextButtonStyle(textButtonStyleDisabled);
     style.font = fontManager.getFont(fontType, fontSize);
     return style;
@@ -248,5 +246,11 @@ public class UiStyle {
    */
   public static ScrollPaneStyle getScrollPaneStyle() {
     return new ScrollPaneStyle(scrollPaneStyle);
+  }
+
+  public static WindowStyle getWindowStyle(FontManager fontManager, int fontType, int fontSize,
+      Drawable background) {
+    return new WindowStyle(fontManager.getFont(fontType, fontSize), new Color(0xdededeff),
+        background);
   }
 }

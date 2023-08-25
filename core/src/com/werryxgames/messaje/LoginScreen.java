@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Screen for logging in to account.
@@ -24,6 +25,8 @@ import java.security.NoSuchAlgorithmException;
 public class LoginScreen extends DefaultScreen {
 
   static final byte[] PEPPER = Utils.hexToBytes(Config.get("password.pepper", "69D029BE4D8E0C42"));
+
+  public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -37,7 +40,9 @@ public class LoginScreen extends DefaultScreen {
 
   @Override
   void onUpdate(float delta) {
-
+    while (this.networkHandlerQueue.size() > 0) {
+      this.networkHandlerQueue.poll().run();
+    }
   }
 
   @Override
@@ -84,8 +89,10 @@ public class LoginScreen extends DefaultScreen {
         LoginScreen.this.game.logger.fine("Register button pressed");
 
         byte[] hashedPassword;
-        byte[] textPasswordBytes = passwordField.getText().getBytes(StandardCharsets.UTF_8);
-        byte[] loginBytes = loginField.getText().getBytes(StandardCharsets.UTF_8);
+        String textPassword = passwordField.getText();
+        byte[] textPasswordBytes = textPassword.getBytes(StandardCharsets.UTF_8);
+        String loginText = loginField.getText();
+        byte[] loginBytes = loginText.getBytes(StandardCharsets.UTF_8);
         byte[] passwordBytes = ByteBuffer.allocate(
                 textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
             .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
@@ -94,6 +101,10 @@ public class LoginScreen extends DefaultScreen {
           hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
         } catch (NoSuchAlgorithmException e) {
           LoginScreen.this.game.logException(e);
+          return;
+        }
+
+        if (!LoginScreen.this.checkData(loginText, loginBytes, textPassword)) {
           return;
         }
 
@@ -117,8 +128,10 @@ public class LoginScreen extends DefaultScreen {
         LoginScreen.this.game.logger.fine("Log in button pressed");
 
         byte[] hashedPassword;
-        byte[] textPasswordBytes = passwordField.getText().getBytes(StandardCharsets.UTF_8);
-        byte[] loginBytes = loginField.getText().getBytes(StandardCharsets.UTF_8);
+        String textPassword = passwordField.getText();
+        byte[] textPasswordBytes = textPassword.getBytes(StandardCharsets.UTF_8);
+        String loginText = loginField.getText();
+        byte[] loginBytes = loginText.getBytes(StandardCharsets.UTF_8);
         byte[] passwordBytes = ByteBuffer.allocate(
                 textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
             .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
@@ -127,6 +140,10 @@ public class LoginScreen extends DefaultScreen {
           hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
         } catch (NoSuchAlgorithmException e) {
           LoginScreen.this.game.logException(e);
+          return;
+        }
+
+        if (!LoginScreen.this.checkData(loginText, loginBytes, textPassword)) {
           return;
         }
 
@@ -169,11 +186,68 @@ public class LoginScreen extends DefaultScreen {
     this.game.stage.addActor(table);
   }
 
+  /**
+   * Checks login and password lengths. If something is wrong, shows warning.
+   *
+   * @param login      Entered login.
+   * @param loginBytes Byte array of entered login.
+   * @param password   Entered password.
+   * @return Returns {@code true} if data is correct, {@code false} otherwise.
+   */
+  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+  public boolean checkData(String login, byte[] loginBytes, String password) {
+    int loginLength = login.length();
+
+    if (loginBytes.length > 64 || loginLength > 16) {
+      this.warning("Incorrect login", "Length of login should be at most 16");
+      return false;
+    }
+
+    if (loginLength < 3) {
+      this.warning("Incorrect login", "Length of login should be at least 3");
+      return false;
+    }
+
+    int passwordLength = password.length();
+
+    if (passwordLength < 6) {
+      this.warning("Unsecure password", """
+          Length of password should be at least 6 (recommended is randomly generated 16+ \
+          characters)
+          Also use different passwords for different applications""");
+      return false;
+    }
+
+    return true;
+  }
+
+  protected void onMessageMain(int code, ByteBuffer message) {
+    switch (code) {
+      case 0, 6 -> this.changeScreen(new ContactsScreen(this.game));
+      case 1 -> this.warning("Unknown error", "Unknown error occurred in server");
+      case 2 -> this.warning("Login already used", "Account with specified login already exists");
+      case 3 -> this.warning("Unknown login length", "Login is too short or too long");
+      case 4 -> {
+        byte titleLength = message.get();
+        byte[] titleBytes = new byte[titleLength];
+        message.get(titleBytes);
+        String title = new String(titleBytes, StandardCharsets.UTF_8);
+        short messageLength = message.getShort();
+        byte[] messageBytes = new byte[messageLength];
+        message.get(messageBytes);
+        String messageString = new String(messageBytes, StandardCharsets.UTF_8);
+        this.warning(title, messageString);
+      }
+      case 5 -> this.warning("Invalid login or password",
+          "Account with specified login and password doesn't exist");
+      default -> this.warning("Invalid message from server",
+          "Received message, that shouldn't be received");
+    }
+  }
+
   @Override
   public void onMessage(int code, ByteBuffer message) {
-    if (code == 0 || code == 6) {
-      this.changeScreen(new ContactsScreen(this.game));
-    }
+    this.networkHandlerQueue.add(() -> this.onMessageMain(code, message));
   }
 
   @Override

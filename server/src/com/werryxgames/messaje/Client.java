@@ -89,8 +89,9 @@ public class Client {
 
         buffer.get(loginBytes);
         String login = new String(loginBytes, StandardCharsets.UTF_8);
+        int loginMbLength = login.length();
 
-        if (login.length() > 16) {
+        if (loginMbLength > 16 || loginMbLength < 3) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
@@ -169,7 +170,7 @@ public class Client {
 
         if (loginBytes.length > 64) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
-          sendBuffer.putShort((short) 4);
+          sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
           return;
         }
@@ -179,7 +180,7 @@ public class Client {
 
         if (login.length() > 16) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
-          sendBuffer.putShort((short) 4);
+          sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
           return;
         }
