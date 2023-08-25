@@ -22,7 +22,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Class, where all known contacts and messages from selected contact are listed.
@@ -31,7 +30,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class ContactsScreen extends DefaultScreen {
 
-  public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
   public long currentUser = 0;
   public boolean changedUser = false;
   ArrayList<FormattedMessage> formattedMessages = new ArrayList<>(64);
@@ -58,9 +56,6 @@ public class ContactsScreen extends DefaultScreen {
 
   @Override
   void onUpdate(float delta) {
-    while (this.networkHandlerQueue.size() > 0) {
-      this.networkHandlerQueue.poll().run();
-    }
   }
 
   @Override
@@ -310,12 +305,14 @@ public class ContactsScreen extends DefaultScreen {
   }
 
   @Override
-  public void onMessage(int code, ByteBuffer serverMessage) {
-    this.networkHandlerQueue.add(() -> this.onMessageMain(code, serverMessage));
+  public void onReconnect() {
+    this.changeScreen(new LoginScreen(this.game));
   }
 
+  @Override
   protected void onMessageMain(int code, ByteBuffer serverMessage) {
     if (code == 7) {
+      this.game.logger.fine(String.valueOf(serverMessage.position()));
       int usersCount = serverMessage.getInt();
       this.users = new ArrayList<>(usersCount);
 

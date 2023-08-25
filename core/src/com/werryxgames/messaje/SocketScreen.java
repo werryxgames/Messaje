@@ -28,6 +28,13 @@ public interface SocketScreen extends Screen {
   void onMessage(int code, ByteBuffer message);
 
   /**
+   * Method, that is called, when client is reconnected to server after disconnect.
+   *
+   * @since 1.0
+   */
+  void onReconnect();
+
+  /**
    * Method, that is called, when client is disconnected from server.
    *
    * @since 1.0

@@ -15,6 +15,12 @@ import com.badlogic.gdx.utils.Align;
  */
 public class ErrorDialog extends Dialog {
 
+  public ErrorDialog(Messaje game, String title, String description, Drawable background,
+      Button... buttons) {
+    super("", UiStyle.getWindowStyle(game.fontManager, 0, 32, background));
+    ErrorDialog.fromDialog(this, game, title, description, buttons);
+  }
+
   public ErrorDialog(String title, WindowStyle style) {
     super(title, style);
   }
@@ -26,14 +32,20 @@ public class ErrorDialog extends Dialog {
    * @param game        Instance of {@link Messaje}.
    * @param title       Title of error/warning.
    * @param description Description of error/warning.
-   * @param background  Background of dialog.
    * @param buttons     List of buttons with dialog actions.
    * @return Created instance of {@link ErrorDialog}.
    */
   public static ErrorDialog fromDialog(Dialog dialog, Messaje game, String title,
-      String description, Drawable background, Button... buttons) {
-    ErrorDialog errorDialog = new ErrorDialog(dialog.getTitleLabel().getText().toString(),
-        dialog.getStyle());
+      String description, Button... buttons) {
+    ErrorDialog errorDialog;
+
+    if (dialog instanceof ErrorDialog) {
+      errorDialog = (ErrorDialog) dialog;
+    } else {
+      errorDialog = new ErrorDialog(dialog.getTitleLabel().getText().toString(),
+          dialog.getStyle());
+    }
+
     errorDialog.center();
     errorDialog.clear();
     errorDialog.setFillParent(true);

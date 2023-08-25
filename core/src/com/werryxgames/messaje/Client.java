@@ -2,6 +2,7 @@ package com.werryxgames.messaje;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Net.Protocol;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.net.Socket;
 import com.badlogic.gdx.net.SocketHints;
 import com.badlogic.gdx.utils.GdxRuntimeException;
@@ -26,6 +27,7 @@ import javax.crypto.NoSuchPaddingException;
  * @since 1.0
  */
 public class Client {
+
   public Messaje game;
   public Socket socket;
   public Protocol protocol;
@@ -37,13 +39,17 @@ public class Client {
    *
    * @since 1.0
    */
-  public SocketScreen currentScreen = null;
+  public DefaultScreen currentScreen = null;
   public DataInputStream inputStream = null;
   public DataOutputStream outputStream = null;
-  protected Thread receiveThread;
-  protected Thread sendThread;
+  public boolean reconnecting = false;
+  protected Thread receiveThread = null;
+  protected Thread sendThread = null;
+  protected Thread reconnectThread = null;
   protected ConcurrentLinkedQueue<byte[]> receiveBytes = new ConcurrentLinkedQueue<>();
   protected ConcurrentLinkedQueue<byte[]> sendBytes = new ConcurrentLinkedQueue<>();
+  protected ErrorDialog reconnectDialog = null;
+  protected boolean closing = false;
 
   /**
    * Client constructor.
@@ -64,14 +70,50 @@ public class Client {
     this.reconnect(3);
   }
 
+  protected void reconnectLoop() {
+    while (!(this.closing || this.isConnected())) {
+      this.reconnectBlocking();
+      System.out.println("RECONNECT LOOP");
+    }
+  }
+
   protected void receiveLoop() throws RuntimeException {
-    while (true) {
-      if (!this.isConnected()) {
+    while (!this.closing) {
+      if (!this.isConnected() && !this.reconnecting) {
         if (this.currentScreen != null) {
+          this.currentScreen.networkHandlerQueue.add(() -> {
+            this.reconnectDialog = new ErrorDialog(this.currentScreen.game, "Reconnecting",
+                "Disconnected from server. Reconnecting...",
+                this.currentScreen.colorToDrawable(new Color(0x000000B8)));
+            this.reconnectDialog.show(this.currentScreen.game.stage);
+          });
           this.currentScreen.onDisconnect();
         }
 
+        this.reconnectThread = new Thread(this::reconnectLoop);
+        this.reconnectThread.start();
+        this.reconnecting = true;
         break;
+      }
+
+      if (this.reconnecting) {
+        if (this.currentScreen != null) {
+          if (this.reconnectDialog != null) {
+            this.reconnectDialog.hide();
+            this.reconnectDialog = null;
+          }
+
+          this.currentScreen.onReconnect();
+        }
+
+        try {
+          this.reconnectThread.join();
+        } catch (InterruptedException e) {
+          this.game.logException(e);
+        }
+
+        this.reconnectThread = null;
+        this.reconnecting = false;
       }
 
       int availableBytes = 0;
@@ -80,7 +122,6 @@ public class Client {
         availableBytes = this.inputStream.readInt();
       } catch (EOFException e) {
         this.socket.dispose();
-        this.socket = null;
         continue;
       } catch (SocketException e) {
         continue;
@@ -193,15 +234,17 @@ public class Client {
    * @param attempts Number of attempts to reconnect.
    * @since 1.0
    */
-  public void reconnectBlocking(int attempts) {
+  public boolean reconnectBlocking(int attempts) {
     for (int i = 0; i < attempts; i++) {
       this.reconnectBlocking();
 
       if (this.isConnected()) {
         this.game.logger.fine("Connected to server");
-        return;
+        return true;
       }
     }
+
+    return false;
   }
 
   /**
@@ -258,14 +301,32 @@ public class Client {
   }
 
   /**
-   * Disposes all used resources.
-   * Must be called at program exit.
+   * Disposes all used resources. Must be called at program exit.
    *
    * @since 1.0
    */
   public void dispose() {
+    this.closing = true;
+
     if (this.socket != null) {
       this.socket.dispose();
+      this.socket = null;
+    }
+
+    try {
+      if (this.sendThread != null) {
+        this.sendThread.join();
+      }
+
+      if (this.receiveThread != null) {
+        this.receiveThread.join();
+      }
+
+      if (this.reconnectThread != null) {
+        this.reconnectThread.join();
+      }
+    } catch (InterruptedException e) {
+      this.game.logException(e);
     }
   }
 }

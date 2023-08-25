@@ -15,7 +15,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Screen for logging in to account.
@@ -25,8 +24,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class LoginScreen extends DefaultScreen {
 
   static final byte[] PEPPER = Utils.hexToBytes(Config.get("password.pepper", "69D029BE4D8E0C42"));
-
-  public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -40,9 +37,6 @@ public class LoginScreen extends DefaultScreen {
 
   @Override
   void onUpdate(float delta) {
-    while (this.networkHandlerQueue.size() > 0) {
-      this.networkHandlerQueue.poll().run();
-    }
   }
 
   @Override
@@ -221,6 +215,7 @@ public class LoginScreen extends DefaultScreen {
     return true;
   }
 
+  @Override
   protected void onMessageMain(int code, ByteBuffer message) {
     switch (code) {
       case 0, 6 -> this.changeScreen(new ContactsScreen(this.game));
@@ -246,8 +241,8 @@ public class LoginScreen extends DefaultScreen {
   }
 
   @Override
-  public void onMessage(int code, ByteBuffer message) {
-    this.networkHandlerQueue.add(() -> this.onMessageMain(code, message));
+  public void onReconnect() {
+
   }
 
   @Override
