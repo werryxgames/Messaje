@@ -21,8 +21,8 @@ import java.sql.SQLException;
     CREATE TABLE IF NOT EXISTS accounts (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
       login VARCHAR(64) NOT NULL,
-      passwordHash CHAR(32) NOT NULL,
-      passwordSalt CHAR(8) NOT NULL,
+      passwordHash BLOB NOT NULL,
+      passwordSalt BLOB NOT NULL,
       PRIMARY KEY (id)
     );
     CREATE TABLE IF NOT EXISTS privateMessages (

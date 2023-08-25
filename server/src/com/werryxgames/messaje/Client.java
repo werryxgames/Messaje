@@ -10,11 +10,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -86,8 +89,9 @@ public class Client {
 
         buffer.get(loginBytes);
         String login = new String(loginBytes, StandardCharsets.UTF_8);
+        int loginMbLength = login.length();
 
-        if (login.length() > 16) {
+        if (loginMbLength > 16 || loginMbLength < 3) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
@@ -96,6 +100,21 @@ public class Client {
 
         byte[] passwordHash = new byte[32];
         buffer.get(passwordHash);
+        byte[] salt = new byte[8];
+        // Salt should be unique, not cryptographically secure
+        //noinspection UnsecureRandomNumberGeneration
+        new Random().nextBytes(salt);
+        byte[] saltedPassword;
+
+        try {
+          saltedPassword = MessageDigest.getInstance("SHA3-256").digest(
+              ByteBuffer.allocate(passwordHash.length + salt.length).put(passwordHash).put(salt)
+                  .array());
+        } catch (NoSuchAlgorithmException e) {
+          this.send(ByteBuffer.allocate(2).putShort((short) 1));
+          this.server.logException(e);
+          return;
+        }
 
         try (ResultSet userWithSameLogin = this.server.db.query(
             "SELECT 1 FROM accounts WHERE login = ?", login)) {
@@ -123,8 +142,8 @@ public class Client {
         if (this.server.db.update(
             "INSERT INTO accounts (login, passwordHash, passwordSalt) VALUES (?, ?, ?)",
             login,
-            passwordHash,
-            "No salt."
+            saltedPassword,
+            salt
         ) < 1) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 1);
@@ -151,7 +170,7 @@ public class Client {
 
         if (loginBytes.length > 64) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
-          sendBuffer.putShort((short) 4);
+          sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
           return;
         }
@@ -161,17 +180,33 @@ public class Client {
 
         if (login.length() > 16) {
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
-          sendBuffer.putShort((short) 4);
+          sendBuffer.putShort((short) 3);
           this.send(sendBuffer);
           return;
         }
 
-        byte[] passwordHash = new byte[32];
-        buffer.get(passwordHash);
         try (ResultSet specifiedUser = this.server.db.query(
-            "SELECT 1 FROM accounts WHERE login = ? AND passwordHash = ? AND passwordSalt = ?",
-            login, passwordHash, "No salt.")) {
+            "SELECT id, passwordHash, passwordSalt FROM accounts WHERE login = ?",
+            login)) {
           if (!specifiedUser.next()) {
+            ByteBuffer sendBuffer = ByteBuffer.allocate(2);
+            sendBuffer.putShort((short) 5);
+            this.send(sendBuffer);
+            return;
+          }
+
+          byte[] passwordHash = new byte[32];
+
+          buffer.get(passwordHash);
+          byte[] correctHash = specifiedUser.getBytes(2);
+          byte[] passwordSalt = specifiedUser.getBytes(3);
+          byte[] computedHash = MessageDigest.getInstance("SHA3-256").digest(
+              ByteBuffer.allocate(passwordHash.length + passwordSalt.length).put(passwordHash)
+                  .put(passwordSalt)
+                  .array());
+
+          if (!Arrays.equals(computedHash, correctHash)) {
+            this.server.logger.fine("Incorrect password");
             ByteBuffer sendBuffer = ByteBuffer.allocate(2);
             sendBuffer.putShort((short) 5);
             this.send(sendBuffer);
@@ -183,7 +218,7 @@ public class Client {
           this.send(sendBuffer);
           this.accountId = specifiedUser.getLong(1);
           this.server.logger.fine("Logged in user with id " + this.accountId);
-        } catch (SQLException e) {
+        } catch (SQLException | NoSuchAlgorithmException e) {
           this.server.logException(e);
           ByteBuffer sendBuffer = ByteBuffer.allocate(2);
           sendBuffer.putShort((short) 1);
@@ -277,6 +312,7 @@ public class Client {
               users.add(new User(senderId, name));
               userIds.add(senderId);
             }
+
             long receiverId = receivedMessages.getLong(3);
             InputStream textStream = receivedMessages.getBinaryStream(4);
             //noinspection ObjectAllocationInLoop
@@ -289,7 +325,7 @@ public class Client {
             //noinspection ObjectAllocationInLoop
             String text = new String(textBytes, StandardCharsets.UTF_8);
             //noinspection ObjectAllocationInLoop
-            messages.add(new Message(messageId, receiverId, false, text));
+            messages.add(new Message(messageId, senderId, false, text));
             this.server.logger.fine(
                 "%d, %d, %d, %s".formatted(messageId, senderId, receiverId, text));
           }
@@ -326,6 +362,11 @@ public class Client {
         this.send(sendBuffer);
       }
       case 3 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
         long contactId = buffer.getLong();
         short messageLength = buffer.getShort();
         byte[] messageBytes = new byte[messageLength];
@@ -336,6 +377,50 @@ public class Client {
             "INSERT INTO privateMessages (sender, receiver, text) VALUES (?, ?, ?)", this.accountId,
             contactId, message) < 1) {
           this.server.logger.warning("Message not delivered");
+        }
+
+        for (Client client : this.server.clients) {
+          if (client.accountId == contactId) {
+            try (ResultSet messageSet = this.server.db.query(
+                "SELECT id FROM privateMessages WHERE sender = ? AND receiver = ? AND text = "
+                    + "? ORDER BY id DESC LIMIT 1",
+                this.accountId, contactId, message)) {
+              if (!messageSet.next()) {
+                break;
+              }
+
+              long messageId = messageSet.getLong(1);
+              Message sentMessage = new Message(messageId, this.accountId, false, message);
+              client.send(ByteBuffer.allocate(2 + sentMessage.byteSize()).putShort((short) 10)
+                  .put(sentMessage.toBytes()));
+            } catch (SQLException e) {
+              break;
+            }
+
+            break;
+          }
+        }
+      }
+      case 4 -> {
+        if (this.accountId == 0) {
+          this.server.logger.finer("Received unauthorized request: 2");
+          return;
+        }
+
+        byte loginLength = buffer.get();
+        byte[] loginBytes = new byte[loginLength];
+        buffer.get(loginBytes);
+        String login = new String(loginBytes, StandardCharsets.UTF_8);
+
+        try (ResultSet result = this.server.db.query("SELECT id FROM accounts WHERE login = ?",
+            login)) {
+          if (result.next()) {
+            this.send(ByteBuffer.allocate(2 + 8).putShort((short) 8).putLong(result.getLong(1)));
+          } else {
+            this.send(ByteBuffer.allocate(2).putShort((short) 9));
+          }
+        } catch (SQLException e) {
+          this.server.logException(e);
         }
       }
       // FINER to prevent spamming from modified (or broken) client, slowing down the server

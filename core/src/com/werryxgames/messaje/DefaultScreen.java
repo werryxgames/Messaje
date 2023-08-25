@@ -4,11 +4,17 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Default screen for Partitioned, that covers most cases.
@@ -16,16 +22,17 @@ import java.util.ArrayList;
  * @since 1.0
  */
 public abstract class DefaultScreen implements SocketScreen {
-  ArrayList<Disposable> disposables = new ArrayList<>(8);
-  final Messaje game;
 
+  final Messaje game;
   /**
    * Screen will be changed to {@code nextScreen} in next {@link DefaultScreen#render(float)}.
    *
    * @since 1.0
    */
   protected DefaultScreen nextScreen = null;
+  ArrayList<Disposable> disposables = new ArrayList<>(8);
   private boolean initialized = false;
+  public ConcurrentLinkedQueue<Runnable> networkHandlerQueue = new ConcurrentLinkedQueue<>();
 
   /**
    * Default constructor for {@code DefaultScreen}.
@@ -75,6 +82,11 @@ public abstract class DefaultScreen implements SocketScreen {
     this.game.camera.update();
     this.game.stage.act(delta);
     this.game.stage.draw();
+
+    while (this.networkHandlerQueue.size() > 0) {
+      this.networkHandlerQueue.poll().run();
+    }
+
     this.onUpdate(delta);
   }
 
@@ -110,6 +122,35 @@ public abstract class DefaultScreen implements SocketScreen {
     }
 
     this.onDispose();
+  }
+
+  abstract void onMessageMain(int code, ByteBuffer message);
+
+  @Override
+  public void onMessage(int code, ByteBuffer message) {
+    this.networkHandlerQueue.add(() -> DefaultScreen.this.onMessageMain(code, message));
+  }
+
+  /**
+   * Shows warning dialog.
+   *
+   * @param title       Tilte of warning.
+   * @param description Description of warning.
+   */
+  public void warning(String title, String description) {
+    Dialog dialog = new Dialog("", UiStyle.getWindowStyle(this.game.fontManager, 0, 32,
+        this.colorToDrawable(new Color(0x000000B8))));
+    TextButton closeButton = new TextButton("Close",
+        UiStyle.getTextButtonStyle(this.game.fontManager, 0, 24));
+    ErrorDialog errorDialog = ErrorDialog.fromDialog(dialog, this.game, title, description,
+        closeButton);
+    closeButton.addListener(new ChangeListener() {
+      @Override
+      public void changed(ChangeEvent event, Actor actor) {
+        errorDialog.hide();
+      }
+    });
+    errorDialog.show(this.game.stage);
   }
 
   /**
