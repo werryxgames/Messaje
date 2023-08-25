@@ -21,7 +21,7 @@ import javax.crypto.NoSuchPaddingException;
  */
 public class Config {
 
-  public static final String DEFAULT_PROPERTIES_PATH = "config.properties.enc";
+  public static final String DEFAULT_PROPERTIES_PATH = Utils.getAsset("config.properties.enc");
   protected static Properties configProperties = null;
 
   private static void loadProperties(InputStream inputStream)

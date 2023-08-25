@@ -21,7 +21,6 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Locale;
 
 /**
  * Class, where all known contacts and messages from selected contact are listed.
@@ -312,7 +311,6 @@ public class ContactsScreen extends DefaultScreen {
   @Override
   protected void onMessageMain(int code, ByteBuffer serverMessage) {
     if (code == 7) {
-      this.game.logger.fine(String.valueOf(serverMessage.position()));
       int usersCount = serverMessage.getInt();
       this.users = new ArrayList<>(usersCount);
 
@@ -354,9 +352,6 @@ public class ContactsScreen extends DefaultScreen {
         }
 
         this.formattedMessages.add(new FormattedMessage(message, table));
-        this.game.logger.fine(String.format(Locale.ENGLISH,
-            "Message. Id: %d, contact id: %d, sent by me: %s, text: '%s'", message.id,
-            message.contactId, message.sentByMe ? "true" : "false", message.text));
       }
 
       this.usersTable = new Table();

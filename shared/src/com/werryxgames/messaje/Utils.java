@@ -1,5 +1,7 @@
 package com.werryxgames.messaje;
 
+import java.io.File;
+
 /**
  * Utilities, that used in client and server.
  *
@@ -23,5 +25,20 @@ public class Utils {
     }
 
     return hexBytes;
+  }
+
+  /**
+   * Return path to asset from absolute path.
+   *
+   * @param path Path of asset inside {@code assets} folder.
+   * @return Path to asset.
+   */
+  public static String getAsset(String path) {
+    //noinspection AccessOfSystemProperties
+    if (System.getProperty("java.vm.name").equalsIgnoreCase("dalvik")) {
+      return "assets" + File.separator + path;
+    }
+
+    return path;
   }
 }

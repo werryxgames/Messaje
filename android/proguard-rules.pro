@@ -26,8 +26,14 @@
 -allowaccessmodification
 
 -keepclassmembers class com.badlogic.gdx.graphics.g2d.* {
-    public <init>(...);
+  public <init>(...);
 }
 -keepclassmembers class com.badlogic.gdx.scenes.scene2d.* {
-    public <init>(...);
+  public <init>(...);
+}
+-keepclassmembers class com.badlogic.gdx.scenes.scene2d.utils.* {
+  public <init>(...);
+}
+-keepclassmembers class com.badlogic.gdx.scenes.scene2d.actions.* {
+  public <init>(...);
 }

@@ -13,8 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import org.bouncycastle.jcajce.provider.digest.SHA3.Digest256;
+import org.bouncycastle.jcajce.provider.digest.SHA3.DigestSHA3;
 
 /**
  * Screen for logging in to account.
@@ -53,7 +53,7 @@ public class LoginScreen extends DefaultScreen {
     );
     table2.add(loginLabel).padRight(4).right();
     TextField loginField = new TextField(
-        "Werryx",
+        "",
         UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24)
     );
     table2.add(loginField).padLeft(4).width(220);
@@ -64,7 +64,7 @@ public class LoginScreen extends DefaultScreen {
     );
     table2.add(passwordLabel).padRight(4).right();
     TextField passwordField = new TextField(
-        "123456",
+        "",
         UiStyle.getTextFieldStyle(this.game.fontManager, 0, 24)
     );
     passwordField.setPasswordMode(true);
@@ -91,12 +91,9 @@ public class LoginScreen extends DefaultScreen {
                 textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
             .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
 
-        try {
-          hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
-        } catch (NoSuchAlgorithmException e) {
-          LoginScreen.this.game.logException(e);
-          return;
-        }
+        DigestSHA3 sha3 = new Digest256();
+        sha3.update(passwordBytes);
+        hashedPassword = sha3.digest();
 
         if (!LoginScreen.this.checkData(loginText, loginBytes, textPassword)) {
           return;
@@ -130,12 +127,9 @@ public class LoginScreen extends DefaultScreen {
                 textPasswordBytes.length + loginBytes.length + LoginScreen.PEPPER.length)
             .put(textPasswordBytes).put(loginBytes).put(LoginScreen.PEPPER).array();
 
-        try {
-          hashedPassword = MessageDigest.getInstance("SHA3-256").digest(passwordBytes);
-        } catch (NoSuchAlgorithmException e) {
-          LoginScreen.this.game.logException(e);
-          return;
-        }
+        DigestSHA3 sha3 = new Digest256();
+        sha3.update(passwordBytes);
+        hashedPassword = sha3.digest();
 
         if (!LoginScreen.this.checkData(loginText, loginBytes, textPassword)) {
           return;

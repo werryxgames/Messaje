@@ -194,6 +194,8 @@ public class Client {
    * @since 1.0
    */
   public void reconnectBlocking() {
+    this.game.logger.fine("Trying to reconnect");
+
     if (this.socket != null) {
       try {
         this.inputStream.close();
@@ -206,8 +208,8 @@ public class Client {
       this.socket = null;
 
       try {
-        this.receiveThread.join(20);
-        this.sendThread.join(20);
+        this.receiveThread.join(50);
+        this.sendThread.join(50);
       } catch (InterruptedException e) {
         this.game.logException(e);
       }
@@ -215,7 +217,9 @@ public class Client {
 
     try {
       this.socket = Gdx.net.newClientSocket(this.protocol, this.host, this.port, this.socketParams);
+      this.game.logger.fine("Socket created");
     } catch (GdxRuntimeException e) {
+      this.game.logException(e);
       return;
     }
 
@@ -225,6 +229,7 @@ public class Client {
     this.sendThread = new Thread(this::sendLoop);
     this.receiveThread.start();
     this.sendThread.start();
+    this.game.logger.fine("Threads started");
   }
 
   /**
