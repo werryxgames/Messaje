@@ -100,6 +100,6 @@ project(":server") {
     dependencies {
         implementation project(":shared")
         implementation "org.mariadb.jdbc:mariadb-java-client:3.3.2"
-        implementation "org.slf4j:slf4j-simple:2.0.10"
+        implementation "org.slf4j:slf4j-simple:2.0.11"
     }
 }
