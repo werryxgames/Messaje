@@ -45,6 +45,16 @@ allprojects {
     }
 }
 
+project(":core") {
+    apply plugin: "java-library"
+
+    dependencies {
+        implementation project(":shared")
+        api "com.badlogicgames.gdx:gdx:$gdxVersion"
+        api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+    }
+}
+
 project(":desktop") {
     apply plugin: "java-library"
 
@@ -81,16 +91,6 @@ project(":shared") {
 
     dependencies {
 
-    }
-}
-
-project(":core") {
-    apply plugin: "java-library"
-
-    dependencies {
-        implementation project(":shared")
-        api "com.badlogicgames.gdx:gdx:$gdxVersion"
-        api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
     }
 }
 
