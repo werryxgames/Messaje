@@ -26,7 +26,7 @@ allprojects {
     version = '1.0'
     ext {
         appName = "Messaje"
-        gdxVersion = '1.12.1'
+        gdxVersion = '1.13.0'
         roboVMVersion = '2.3.19'
         box2DLightsVersion = '1.5'
         ashleyVersion = '1.7.4'
